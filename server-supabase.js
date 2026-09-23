@@ -13,6 +13,7 @@ const ADMIN_DIR = path.join(ROOT, "admin");
 const SUPABASE_URL = String(process.env.SUPABASE_URL || "").trim();
 const SUPABASE_SECRET_KEY = String(process.env.SUPABASE_SECRET_KEY || "").trim();
 const STORAGE_BUCKET = "books";
+const SCHOLARS_BUCKET = "scholars";
 
 if (!SUPABASE_URL || !SUPABASE_SECRET_KEY) {
   throw new Error("SUPABASE_URL and SUPABASE_SECRET_KEY are required in production.");
@@ -36,6 +37,41 @@ const upload = multer({
     else cb(new Error("PDF files only"));
   }
 });
+
+const scholarUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype && file.mimetype.startsWith("image/")) cb(null, true);
+    else cb(new Error("Image files only"));
+  }
+});
+
+function publicStoragePath(publicUrl, bucket) {
+  const marker = `/storage/v1/object/public/${bucket}/`;
+  const index = String(publicUrl || "").indexOf(marker);
+  return index >= 0 ? String(publicUrl).slice(index + marker.length) : null;
+}
+
+async function uploadScholarImage(file) {
+  if (!file) return null;
+  const ext = (file.originalname || "image").split(".").pop().toLowerCase().replace(/[^a-z0-9]/g, "");
+  const filePath = `scholars/${Date.now()}-${crypto.randomBytes(6).toString("hex")}.${ext || "jpg"}`;
+  const { error } = await supabase.storage.from(SCHOLARS_BUCKET).upload(filePath, file.buffer, {
+    contentType: file.mimetype,
+    upsert: false
+  });
+  if (error) throw error;
+  const { data } = supabase.storage.from(SCHOLARS_BUCKET).getPublicUrl(filePath);
+  return data.publicUrl;
+}
+
+async function deleteScholarImage(publicUrl) {
+  const path = publicStoragePath(publicUrl, SCHOLARS_BUCKET);
+  if (!path) return;
+  const { error } = await supabase.storage.from(SCHOLARS_BUCKET).remove([path]);
+  if (error && !String(error.message || "").toLowerCase().includes("not found")) throw error;
+}
 
 function hashPassword(password) {
   const salt = crypto.randomBytes(16).toString("hex");
@@ -293,13 +329,74 @@ app.get("/api/scholars", async (req, res, next) => {
   try { res.json(await getScholars()); } catch (e) { next(e); }
 });
 
-app.post("/api/scholars", requireAdmin, async (req, res, next) => {
+app.post("/api/scholars", requireAdmin, scholarUpload.single("image"), async (req, res, next) => {
   try {
     const { name, biography = "" } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: "اسم العالم مطلوب" });
-    const { data, error } = await supabase.from("scholars").insert({ name: name.trim(), biography }).select("id").single();
-    if (error) throw error;
+    const image_url = await uploadScholarImage(req.file);
+    const { data, error } = await supabase.from("scholars").insert({
+      name: name.trim(),
+      biography,
+      image_url: image_url || ""
+    }).select("id").single();
+    if (error) {
+      if (image_url) await deleteScholarImage(image_url).catch(() => {});
+      throw error;
+    }
     res.json({ success: true, id: data.id });
+  } catch (e) { next(e); }
+});
+
+app.put("/api/scholars/:id", requireAdmin, scholarUpload.single("image"), async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const { name, biography = "" } = req.body;
+    if (!Number.isInteger(id) || !name?.trim()) return res.status(400).json({ error: "بيانات العالم غير صحيحة" });
+
+    const { data: current, error: currentError } = await supabase
+      .from("scholars")
+      .select("id,name,biography,image_url")
+      .eq("id", id)
+      .maybeSingle();
+    if (currentError) throw currentError;
+    if (!current) return res.status(404).json({ error: "العالم غير موجود" });
+
+    let image_url = current.image_url || "";
+    if (req.file) image_url = await uploadScholarImage(req.file);
+
+    const { error } = await supabase.from("scholars").update({
+      name: name.trim(),
+      biography,
+      image_url
+    }).eq("id", id);
+    if (error) {
+      if (req.file && image_url) await deleteScholarImage(image_url).catch(() => {});
+      throw error;
+    }
+
+    if (req.file && current.image_url && current.image_url !== image_url) {
+      await deleteScholarImage(current.image_url).catch(() => {});
+    }
+    res.json({ success: true });
+  } catch (e) { next(e); }
+});
+
+app.delete("/api/scholars/:id", requireAdmin, async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) return res.status(400).json({ error: "معرّف العالم غير صحيح" });
+    const { data: current, error: currentError } = await supabase
+      .from("scholars")
+      .select("id,image_url")
+      .eq("id", id)
+      .maybeSingle();
+    if (currentError) throw currentError;
+    if (!current) return res.status(404).json({ error: "العالم غير موجود" });
+
+    const { error } = await supabase.from("scholars").delete().eq("id", id);
+    if (error) throw error;
+    if (current.image_url) await deleteScholarImage(current.image_url).catch(() => {});
+    res.json({ success: true });
   } catch (e) { next(e); }
 });
 
