@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>إنشاء حساب - أكاديمية السنة</title><link rel="stylesheet" href="/css/style.css"></head>
+<body>
+<header class="site-header"><div class="container nav-wrap"><a class="brand" href="/"><span class="brand-mark">❈</span><span><strong>أكاديمية السنة</strong><small>حساب الطالب</small></span></a><nav class="main-nav">
+  <a href="/">الرئيسية</a>
+  <a href="/levels.html">المسار العلمي</a>
+  <a href="/library.html">المكتبة</a>
+  <a href="/scholars.html">العلماء</a>
+  <a href="/tests.html">الاختبارات</a>
+  <a href="/dashboard.html">لوحة الطالب</a>
+  <a class="admin-link" href="/admin">الإدارة</a>
+</nav></div></header>
+<main class="page-shell"><div class="container auth-shell"><div class="auth-card">
+<span class="eyebrow">بداية المسار</span><h1>إنشاء حساب طالب</h1>
+<form id="registerForm" class="form-grid"><input name="name" placeholder="الاسم" required><input name="email" type="email" placeholder="البريد الإلكتروني" required><input name="password" type="password" minlength="8" placeholder="كلمة المرور — 8 أحرف على الأقل" required><select name="level_id" id="levelSelect"><option value="">اختر مستواك الحالي (اختياري)</option></select><button class="btn primary" type="submit">إنشاء الحساب</button><div id="msg"></div></form>
+</div></div></main>
+<footer class="site-footer"><div class="container footer-inner"><div class="footer-brand">أكاديمية السنة</div><div class="footer-credit">زهير بن عمرو أبو معاذ</div></div></footer>
+<script>
+async function load(){const r=await fetch("/api/levels");const levels=await r.json();document.getElementById("levelSelect").innerHTML='<option value="">اختر مستواك الحالي (اختياري)</option>'+levels.map(x=>`<option value="${x.id}">${x.name}</option>`).join("")}
+load();
+document.getElementById("registerForm").addEventListener("submit",async e=>{e.preventDefault();const f=new FormData(e.target);const r=await fetch("/api/auth/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(Object.fromEntries(f))});const d=await r.json();if(!r.ok){document.getElementById("msg").textContent=d.error;return}location.href="/dashboard.html"});
+</script></body></html>

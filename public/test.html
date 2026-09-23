@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>اختبار - أكاديمية السنة</title><link rel="stylesheet" href="/css/style.css"></head>
+<body>
+<header class="site-header"><div class="container nav-wrap"><a class="brand" href="/"><span class="brand-mark">❈</span><span><strong>أكاديمية السنة</strong><small>اختبار علمي</small></span></a><nav class="main-nav">
+  <a href="/">الرئيسية</a>
+  <a href="/levels.html">المسار العلمي</a>
+  <a href="/library.html">المكتبة</a>
+  <a href="/scholars.html">العلماء</a>
+  <a href="/tests.html">الاختبارات</a>
+  <a href="/dashboard.html">لوحة الطالب</a>
+  <a class="admin-link" href="/admin">الإدارة</a>
+</nav></div></header>
+<main class="page-shell"><div class="container"><div id="testHeader" class="page-banner compact"></div><form id="testForm"><div id="questions"></div><button class="btn primary test-submit" type="submit">تسليم الاختبار</button></form><div id="result"></div></div></main>
+<footer class="site-footer"><div class="container footer-inner"><div class="footer-brand">أكاديمية السنة</div><div class="footer-credit">زهير بن عمرو أبو معاذ</div></div></footer>
+<script>
+function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+let currentTest=null;
+(async()=>{const id=new URLSearchParams(location.search).get("id");const r=await fetch("/api/tests/"+id);if(r.status===401){location.href="/login.html";return}const d=await r.json();if(!r.ok){document.getElementById("testHeader").innerHTML="<h1>الاختبار غير موجود</h1>";return}currentTest=d;
+document.getElementById("testHeader").innerHTML=`<span class="eyebrow">اختبار</span><h1>${esc(d.title)}</h1><p>${esc(d.description||"")} — نسبة النجاح ${d.pass_score}%</p>`;
+document.getElementById("questions").innerHTML=d.questions.map((q,i)=>`<section class="question-card"><div class="question-number">السؤال ${i+1}</div><h2>${esc(q.question_text)}</h2><div class="options">${q.options.map((o,j)=>`<label class="option"><input type="radio" name="q-${q.id}" value="${j}"><span>${String.fromCharCode(0x10D81+j)} — ${esc(o)}</span></label>`).join("")}</div></section>`).join("")})();
+
+document.getElementById("testForm").addEventListener("submit",async e=>{e.preventDefault();if(!currentTest)return;const answers={};currentTest.questions.forEach(q=>{const el=document.querySelector(`input[name="q-${q.id}"]:checked`);if(el)answers[q.id]=Number(el.value)});const r=await fetch("/api/tests/"+currentTest.id+"/submit",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({answers})});const d=await r.json();if(r.status===401){location.href="/login.html";return}if(!r.ok){document.getElementById("result").innerHTML=`<div class="empty">${esc(d.error)}</div>`;return}
+document.getElementById("result").innerHTML=`<div class="result-card ${d.passed?"passed":"failed"}"><div class="result-score">${d.score}%</div><h2>${d.passed?"أحسنت، اجتزت الاختبار":"لم تجتز الاختبار"}</h2><p>${d.correct_count} من ${d.total_count} إجابات صحيحة. نسبة النجاح المطلوبة ${d.pass_score}%.</p><a class="btn primary" href="/dashboard.html">العودة إلى لوحة الطالب</a></div><div class="review">${d.review.map((q,i)=>`<div class="review-item"><strong>${i+1}. ${esc(q.question_text)}</strong><p>إجابتك: ${q.selected_index===null?"لم تجب":esc(q.options[q.selected_index])}</p><p>الصواب: <b>${esc(q.options[q.correct_index])}</b></p>${q.explanation?`<small>${esc(q.explanation)}</small>`:""}</div>`).join("")}</div>`;
+window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"});
+});
+</script></body></html>

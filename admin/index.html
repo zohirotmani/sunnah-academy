@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>إدارة أكاديمية السنة</title><link rel="stylesheet" href="/css/style.css">
+<style>
+  .success{color:var(--forest);font-weight:700}
+  .muted{color:var(--muted)}
+</style>
+</head>
+<body>
+<header class="site-header"><div class="container nav-wrap"><a class="brand" href="/"><span class="brand-mark">❈</span><span><strong>أكاديمية السنة</strong><small>لوحة الإدارة</small></span></a><nav class="main-nav"><a href="/">الموقع</a></nav></div></header>
+<main class="page-shell"><div class="container">
+<div class="dashboard-head"><div class="eyebrow">إدارة المحتوى</div><h1>لوحة التحكم</h1><p>أضف المستويات والمواد والعلماء والكتب والاختبارات.</p></div>
+<div id="summary" class="feature-row"></div>
+<div class="admin-grid">
+<section class="dash-panel">
+  <h2>حساب المدير</h2>
+  <p class="muted">غيّر البريد الإلكتروني وكلمة المرور لحساب الإدارة الحالي.</p>
+  <form id="accountForm" class="form-grid">
+    <input id="adminName" name="name" placeholder="اسم المدير">
+    <input id="adminEmail" name="email" type="email" placeholder="البريد الإلكتروني" required>
+    <input name="current_password" type="password" placeholder="كلمة المرور الحالية" required>
+    <input name="new_password" type="password" minlength="8" placeholder="كلمة المرور الجديدة — اختياري">
+    <button class="btn primary" type="submit">حفظ بيانات الحساب</button>
+    <div id="accountMsg"></div>
+  </form>
+</section>
+
+<section class="dash-panel"><h2>إضافة مستوى</h2><form id="levelForm" class="form-grid"><input name="name" placeholder="المستوى الأول" required><input name="sort_order" type="number" placeholder="الترتيب"><textarea name="description" placeholder="وصف المستوى"></textarea><button class="btn primary">إضافة</button><div id="levelMsg"></div></form></section>
+<section class="dash-panel"><h2>إضافة مادة</h2><form id="subjectForm" class="form-grid"><input name="name" placeholder="العقيدة" required><textarea name="description" placeholder="وصف المادة"></textarea><button class="btn primary">إضافة</button><div id="subjectMsg"></div></form></section>
+<section class="dash-panel"><h2>إضافة عالم</h2><form id="scholarForm" class="form-grid"><input name="name" placeholder="اسم العالم" required><textarea name="biography" placeholder="نبذة"></textarea><button class="btn primary">إضافة</button><div id="scholarMsg"></div></form></section>
+<section class="dash-panel"><h2>رفع كتاب PDF</h2><form id="bookForm" class="form-grid"><input name="title" placeholder="اسم الكتاب" required><input name="author" placeholder="المؤلف"><select name="scholar_id" id="scholarSelect"><option value="">العالم</option></select><select name="subject_id" id="subjectSelect"><option value="">المادة</option></select><select name="level_id" id="levelSelect"><option value="">المستوى</option></select><select name="level"><option value="level-1">PDF — المستوى 1</option><option value="level-2">PDF — المستوى 2</option><option value="level-3">PDF — المستوى 3</option><option value="level-4">PDF — المستوى 4</option><option value="level-5">PDF — المستوى 5</option></select><input name="page_count" type="number" min="0" placeholder="عدد الصفحات (اختياري)"><textarea name="description" placeholder="وصف الكتاب"></textarea><input name="pdf" type="file" accept="application/pdf" required><button class="btn primary">رفع الكتاب</button><div id="bookMsg"></div></form></section>
+<section class="dash-panel wide-admin"><h2>إنشاء اختبار</h2><form id="testForm" class="form-grid"><input name="title" placeholder="عنوان الاختبار" required><textarea name="description" placeholder="وصف وتعليمات الاختبار"></textarea><select name="book_id" id="testBookSelect"><option value="">الكتاب المرتبط</option></select><select name="level_id" id="testLevelSelect"><option value="">المستوى المرتبط</option></select><input name="pass_score" type="number" min="1" max="100" value="70" placeholder="نسبة النجاح"><button class="btn primary">إنشاء الاختبار</button><div id="testMsg"></div></form><div id="testsList"></div></section>
+<section class="dash-panel wide-admin"><h2>إضافة سؤال إلى اختبار</h2><p class="muted">كل سؤال يجب أن يحتوي على <strong>10 خيارات بالضبط</strong>، ويُحدد خيار واحد بوصفه الصحيح.</p><form id="questionForm" class="form-grid"><select name="test_id" id="questionTestSelect" required><option value="">اختر الاختبار</option></select><textarea name="question_text" placeholder="نص السؤال" required></textarea><div id="optionsFields"></div><select name="correct_index" id="correctIndex" required><option value="">اختر رقم الخيار الصحيح</option></select><input name="sort_order" type="number" value="0" placeholder="ترتيب السؤال"><textarea name="explanation" placeholder="شرح الإجابة بعد التصحيح (اختياري)"></textarea><button class="btn primary">إضافة السؤال</button><div id="questionMsg"></div></form></section>
+</div>
+</div></main>
+<footer class="site-footer"><div class="container footer-inner"><div class="footer-brand">أكاديمية السنة</div><div class="footer-credit">زهير بن عمرو أبو معاذ</div></div></footer>
+<script>
+const options=Array.from({length:10},(_,i)=>`<input name="option_${i}" placeholder="الخيار ${i+1}" required>`);
+document.getElementById("optionsFields").innerHTML=options.join("");
+document.getElementById("correctIndex").innerHTML='<option value="">اختر رقم الخيار الصحيح</option>'+Array.from({length:10},(_,i)=>`<option value="${i}">${i+1}</option>`).join("");
+async function api(url,o={}){const r=await fetch(url,o);const d=await r.json().catch(()=>({}));if(r.status===401||r.status===403){location.href="/login.html";return d}if(!r.ok)throw new Error(d.error||"حدث خطأ");return d}
+function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+
+async function ensureAdmin(){
+  const r = await fetch("/api/auth/me");
+  if (r.status === 401) {
+    location.href = "/login.html";
+    return null;
+  }
+  const user = await r.json();
+  if (user.role !== "admin") {
+    location.href = "/";
+    return null;
+  }
+  document.getElementById("adminName").value = user.name || "";
+  document.getElementById("adminEmail").value = user.email || "";
+  return user;
+}
+
+document.getElementById("accountForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const msg = document.getElementById("accountMsg");
+  const form = new FormData(e.target);
+  try {
+    const r = await fetch("/api/admin/account", {
+      method: "PUT",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(Object.fromEntries(form))
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || "تعذر حفظ بيانات الحساب");
+    msg.innerHTML = '<span class="success">تم تحديث بيانات المدير بنجاح.</span>';
+    e.target.reset();
+    document.getElementById("adminName").value = d.user.name || "";
+    document.getElementById("adminEmail").value = d.user.email || "";
+  } catch (err) {
+    msg.textContent = err.message;
+  }
+});
+
+async function load(){
+ const [levels,subjects,scholars,books,tests,summary]=await Promise.all([api("/api/levels"),api("/api/subjects"),api("/api/scholars"),api("/api/books"),api("/api/tests"),api("/api/admin/summary")]);
+ const fill=(id,placeholder,data,lab)=>document.getElementById(id).innerHTML=`<option value="">${placeholder}</option>`+data.map(x=>`<option value="${x.id}">${esc(lab(x))}</option>`).join("");
+ fill("levelSelect","المستوى",levels,x=>x.name);fill("subjectSelect","المادة",subjects,x=>x.name);fill("scholarSelect","العالم",scholars,x=>x.name);fill("testBookSelect","الكتاب",books,x=>x.title);fill("testLevelSelect","المستوى",levels,x=>x.name);fill("questionTestSelect","الاختبار",tests,x=>x.title);
+ document.getElementById("testsList").innerHTML=tests.length?`<div class="admin-table"><div><b>الاختبارات الحالية:</b></div>${tests.map(t=>`<div class="attempt"><strong>${esc(t.title)}</strong><span>${t.question_count} سؤال — نجاح ${t.pass_score}%</span></div>`).join("")}</div>`:"<div class='empty'>لا توجد اختبارات.</div>";
+ document.getElementById("summary").innerHTML=Object.entries({المستويات:summary.levels,الكتب:summary.books,الطلاب:summary.students,الاختبارات:summary.tests,الأسئلة:summary.questions}).map(([k,v])=>`<div class="feature-card"><div class="feature-icon">◈</div><h3>${v}</h3><p>${k}</p></div>`).join("");
+}
+for(const [form,endpoint,msg] of [["levelForm","/api/levels","levelMsg"],["subjectForm","/api/subjects","subjectMsg"],["scholarForm","/api/scholars","scholarMsg"]]){
+ document.getElementById(form).addEventListener("submit",async e=>{e.preventDefault();try{const f=new FormData(e.target);await api(endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(Object.fromEntries(f))});e.target.reset();document.getElementById(msg).textContent="تمت الإضافة.";load()}catch(err){document.getElementById(msg).textContent=err.message}});
+}
+document.getElementById("bookForm").addEventListener("submit",async e=>{e.preventDefault();try{await api("/api/books",{method:"POST",body:new FormData(e.target)});e.target.reset();document.getElementById("bookMsg").textContent="تم رفع الكتاب.";load()}catch(err){document.getElementById("bookMsg").textContent=err.message}});
+document.getElementById("testForm").addEventListener("submit",async e=>{e.preventDefault();try{await api("/api/tests",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(Object.fromEntries(new FormData(e.target)))});e.target.reset();document.getElementById("testMsg").textContent="تم إنشاء الاختبار.";load()}catch(err){document.getElementById("testMsg").textContent=err.message}});
+document.getElementById("questionForm").addEventListener("submit",async e=>{e.preventDefault();try{const f=new FormData(e.target),options=Array.from({length:10},(_,i)=>f.get("option_"+i));await api("/api/tests/"+f.get("test_id")+"/questions",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question_text:f.get("question_text"),options,correct_index:Number(f.get("correct_index")),sort_order:Number(f.get("sort_order")||0),explanation:f.get("explanation")||""})});e.target.reset();document.getElementById("questionMsg").textContent="تمت إضافة السؤال.";load()}catch(err){document.getElementById("questionMsg").textContent=err.message}});
+ensureAdmin().then(user=>{ if(user) load().catch(e=>{document.body.insertAdjacentHTML("afterbegin",`<div class="empty">${esc(e.message)}</div>`)}); });;
+</script></body></html>

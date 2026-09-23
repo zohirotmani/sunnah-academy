@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>الاختبارات - أكاديمية السنة</title><link rel="stylesheet" href="/css/style.css"></head>
+<body>
+<header class="site-header"><div class="container nav-wrap"><a class="brand" href="/"><span class="brand-mark">❈</span><span><strong>أكاديمية السنة</strong><small>الاختبارات</small></span></a><nav class="main-nav">
+  <a href="/">الرئيسية</a>
+  <a href="/levels.html">المسار العلمي</a>
+  <a href="/library.html">المكتبة</a>
+  <a href="/scholars.html">العلماء</a>
+  <a href="/tests.html">الاختبارات</a>
+  <a href="/dashboard.html">لوحة الطالب</a>
+  <a class="admin-link" href="/admin">الإدارة</a>
+</nav></div></header>
+<main class="page-shell"><div class="container"><div class="page-banner"><span class="eyebrow">قياس التحصيل</span><h1>الاختبارات</h1><p>اختبارات ذات خيارات متعددة، ويحتوي السؤال الواحد على عشرة خيارات.</p></div><div id="testsGrid" class="grid cards-3"></div></div></main>
+<footer class="site-footer"><div class="container footer-inner"><div class="footer-brand">أكاديمية السنة</div><div class="footer-credit">زهير بن عمرو أبو معاذ</div></div></footer>
+<script>
+async function load(){const r=await fetch("/api/tests");const d=await r.json();const g=document.getElementById("testsGrid");g.innerHTML=d.length?d.map(t=>`<a class="book-card" href="/test.html?id=${t.id}"><div class="book-cover"><span>اختبار<br>${t.question_count} أسئلة<br>10 خيارات</span></div><div class="book-body"><h3>${t.title}</h3><p>${t.book_title||""}</p><div class="book-meta"><span class="badge">النجاح ${t.pass_score}%</span>${t.level_name?`<span class="badge">${t.level_name}</span>`:""}</div></div></a>`).join(""):`<div class="empty">لم تُضف اختبارات بعد.</div>`}load();
+</script></body></html>

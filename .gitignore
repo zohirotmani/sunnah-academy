@@ -1,0 +1,10 @@
+node_modules/
+.env
+academy.db
+uploads/
+public/pdf/*
+!public/pdf/level-1/.gitkeep
+!public/pdf/level-2/.gitkeep
+!public/pdf/level-3/.gitkeep
+!public/pdf/level-4/.gitkeep
+!public/pdf/level-5/.gitkeep
