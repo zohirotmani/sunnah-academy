@@ -309,6 +309,38 @@ app.post("/api/levels", requireAdmin, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+app.put("/api/levels/:id", requireAdmin, async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const { name, description = "", sort_order = 0 } = req.body;
+    if (!Number.isInteger(id) || !name?.trim()) {
+      return res.status(400).json({ error: "بيانات المستوى غير صحيحة" });
+    }
+    const { data: current, error: currentError } = await supabase
+      .from("levels").select("id").eq("id", id).maybeSingle();
+    if (currentError) throw currentError;
+    if (!current) return res.status(404).json({ error: "المستوى غير موجود" });
+
+    const { error } = await supabase.from("levels").update({
+      name: name.trim(),
+      description,
+      sort_order: cleanInt(sort_order, 0)
+    }).eq("id", id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (e) { next(e); }
+});
+
+app.delete("/api/levels/:id", requireAdmin, async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) return res.status(400).json({ error: "معرّف المستوى غير صحيح" });
+    const { error } = await supabase.from("levels").delete().eq("id", id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (e) { next(e); }
+});
+
 // ---------- Subjects ----------
 app.get("/api/subjects", async (req, res, next) => {
   try { res.json(await getSubjects()); } catch (e) { next(e); }
@@ -321,6 +353,37 @@ app.post("/api/subjects", requireAdmin, async (req, res, next) => {
     const { data, error } = await supabase.from("subjects").insert({ name: name.trim(), description }).select("id").single();
     if (error) throw error;
     res.json({ success: true, id: data.id });
+  } catch (e) { next(e); }
+});
+
+app.put("/api/subjects/:id", requireAdmin, async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const { name, description = "" } = req.body;
+    if (!Number.isInteger(id) || !name?.trim()) {
+      return res.status(400).json({ error: "بيانات المادة غير صحيحة" });
+    }
+    const { data: current, error: currentError } = await supabase
+      .from("subjects").select("id").eq("id", id).maybeSingle();
+    if (currentError) throw currentError;
+    if (!current) return res.status(404).json({ error: "المادة غير موجودة" });
+
+    const { error } = await supabase.from("subjects").update({
+      name: name.trim(),
+      description
+    }).eq("id", id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (e) { next(e); }
+});
+
+app.delete("/api/subjects/:id", requireAdmin, async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) return res.status(400).json({ error: "معرّف المادة غير صحيح" });
+    const { error } = await supabase.from("subjects").delete().eq("id", id);
+    if (error) throw error;
+    res.json({ success: true });
   } catch (e) { next(e); }
 });
 
@@ -739,6 +802,77 @@ app.get("/api/attempts/:id", requireStudent, async (req, res, next) => {
     if (testError) throw testError;
     res.json({ ...attempt, test_title: test?.title || null });
   } catch (e) { next(e); }
+});
+
+// ---------- Admin students ----------
+app.get("/api/admin/students", requireAdmin, async (req, res, next) => {
+  try {
+    const { data: students, error: studentsError } = await supabase
+      .from("users")
+      .select("id,name,email,current_level_id,created_at")
+      .eq("role", "student")
+      .order("created_at", { ascending: false });
+
+    if (studentsError) throw studentsError;
+
+    const { data: levels, error: levelsError } = await supabase
+      .from("levels")
+      .select("id,name");
+
+    if (levelsError) throw levelsError;
+
+    const levelMap = new Map(
+      (levels || []).map(level => [Number(level.id), level.name])
+    );
+
+    res.json(
+      (students || []).map(student => ({
+        ...student,
+        level_name:
+          levelMap.get(Number(student.current_level_id)) || "لم يحدد"
+      }))
+    );
+  } catch (e) {
+    next(e);
+  }
+});
+
+app.delete("/api/admin/students/:id", requireAdmin, async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id)) {
+      return res.status(400).json({ error: "معرّف الطالب غير صحيح" });
+    }
+
+    const { data: student, error: studentError } = await supabase
+      .from("users")
+      .select("id,role")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (studentError) throw studentError;
+
+    if (!student) {
+      return res.status(404).json({ error: "الطالب غير موجود" });
+    }
+
+    if (student.role !== "student") {
+      return res.status(403).json({ error: "لا يمكن حذف هذا الحساب من هنا" });
+    }
+
+    const { error } = await supabase
+      .from("users")
+      .delete()
+      .eq("id", id)
+      .eq("role", "student");
+
+    if (error) throw error;
+
+    res.json({ success: true });
+  } catch (e) {
+    next(e);
+  }
 });
 
 // ---------- Admin account ----------
