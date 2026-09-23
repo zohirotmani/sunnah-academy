@@ -1,6 +1,12 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>اختبار - أكاديمية السنة</title><link rel="stylesheet" href="/css/style.css"><link rel="icon" type="image/png" href="/images/sunnah-favicon.png"></head>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>اختبار - أكاديمية السنة</title>
+<link rel="stylesheet" href="/css/style.css">
+<link rel="icon" type="image/png" href="/images/sunnah-favicon.png">
+</head>
 <body>
 <header class="site-header"><div class="container nav-wrap"><a class="brand" href="/"><span class="brand-mark">❈</span><span><strong>أكاديمية السنة</strong><small>اختبار علمي</small></span></a><nav class="main-nav">
   <a href="/">الرئيسية</a>
@@ -11,17 +17,56 @@
   <a href="/dashboard.html">لوحة الطالب</a>
   <a class="admin-link" href="/admin">الإدارة</a>
 </nav></div></header>
-<main class="page-shell"><div class="container"><div id="testHeader" class="page-banner compact"></div><form id="testForm"><div id="questions"></div><button class="btn primary test-submit" type="submit">تسليم الاختبار</button></form><div id="result"></div></div></main>
+<main class="page-shell"><div class="container"><div id="testHeader" class="page-banner compact"></div><div id="lockedNotice"></div><form id="testForm"><div id="questions"></div><button id="submitBtn" class="btn primary test-submit" type="submit">تسليم الاختبار</button></form><div id="result"></div></div></main>
 <footer class="site-footer"><div class="container footer-inner"><div class="footer-brand">أكاديمية السنة</div><div class="footer-credit">زهير بن عمرو أبو معاذ</div></div></footer>
 <script>
 function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
 let currentTest=null;
-(async()=>{const id=new URLSearchParams(location.search).get("id");const r=await fetch("/api/tests/"+id);if(r.status===401){location.href="/login.html";return}const d=await r.json();if(!r.ok){document.getElementById("testHeader").innerHTML="<h1>الاختبار غير موجود</h1>";return}currentTest=d;
-document.getElementById("testHeader").innerHTML=`<span class="eyebrow">اختبار</span><h1>${esc(d.title)}</h1><p>${esc(d.description||"")} — نسبة النجاح ${d.pass_score}%</p>`;
-document.getElementById("questions").innerHTML=d.questions.map((q,i)=>`<section class="question-card"><div class="question-number">السؤال ${i+1}</div><h2>${esc(q.question_text)}</h2><div class="options">${q.options.map((o,j)=>`<label class="option"><input type="radio" name="q-${q.id}" value="${j}"><span>${String.fromCharCode(0x10D81+j)} — ${esc(o)}</span></label>`).join("")}</div></section>`).join("")})();
+(async()=>{
+  const id=new URLSearchParams(location.search).get("id");
+  const r=await fetch("/api/tests/"+id);
+  if(r.status===401){location.href="/login.html";return}
+  const d=await r.json();
+  if(!r.ok){document.getElementById("testHeader").innerHTML=`<div class="empty">${esc(d.error||"الاختبار غير موجود")}</div>`;return}
+  currentTest=d;
+  document.getElementById("testHeader").innerHTML=`<span class="eyebrow">اختبار علمي</span><h1>${esc(d.title)}</h1><p>${esc(d.description||"")} — نسبة النجاح المطلوبة 70% — عشرة أسئلة، وكل سؤال عشرة خيارات.</p>`;
+  if(!Array.isArray(d.questions)||d.questions.length!==10){
+    document.getElementById("questions").innerHTML=`<div class="empty">الاختبار غير مكتمل بعد. يجب أن يشتمل على 10 أسئلة بالضبط.</div>`;
+    document.getElementById("submitBtn").disabled=true;
+    return;
+  }
+  document.getElementById("questions").innerHTML=d.questions.map((q,i)=>`<section class="question-card"><div class="question-number">السؤال ${i+1} من 10</div><h2>${esc(q.question_text)}</h2><p class="muted">يمكن اختيار إجابة واحدة أو عدة إجابات.</p><div class="options">${q.options.map((o,j)=>`<label class="option"><input type="checkbox" name="q-${q.id}" value="${j}"><span>الخيار ${j+1} — ${esc(o)}</span></label>`).join("")}</div></section>`).join("");
+})();
 
-document.getElementById("testForm").addEventListener("submit",async e=>{e.preventDefault();if(!currentTest)return;const answers={};currentTest.questions.forEach(q=>{const el=document.querySelector(`input[name="q-${q.id}"]:checked`);if(el)answers[q.id]=Number(el.value)});const r=await fetch("/api/tests/"+currentTest.id+"/submit",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({answers})});const d=await r.json();if(r.status===401){location.href="/login.html";return}if(!r.ok){document.getElementById("result").innerHTML=`<div class="empty">${esc(d.error)}</div>`;return}
-document.getElementById("result").innerHTML=`<div class="result-card ${d.passed?"passed":"failed"}"><div class="result-score">${d.score}%</div><h2>${d.passed?"أحسنت، اجتزت الاختبار":"لم تجتز الاختبار"}</h2><p>${d.correct_count} من ${d.total_count} إجابات صحيحة. نسبة النجاح المطلوبة ${d.pass_score}%.</p><a class="btn primary" href="/dashboard.html">العودة إلى لوحة الطالب</a></div><div class="review">${d.review.map((q,i)=>`<div class="review-item"><strong>${i+1}. ${esc(q.question_text)}</strong><p>إجابتك: ${q.selected_index===null?"لم تجب":esc(q.options[q.selected_index])}</p><p>الصواب: <b>${esc(q.options[q.correct_index])}</b></p>${q.explanation?`<small>${esc(q.explanation)}</small>`:""}</div>`).join("")}</div>`;
-window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"});
+document.getElementById("testForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  if(!currentTest)return;
+  const answers={};
+  currentTest.questions.forEach(q=>{
+    answers[q.id]=Array.from(document.querySelectorAll(`input[name="q-${q.id}"]:checked`)).map(el=>Number(el.value));
+  });
+  const submitBtn=document.getElementById("submitBtn");
+  submitBtn.disabled=true;
+  submitBtn.textContent="جارٍ التصحيح...";
+  const r=await fetch("/api/tests/"+currentTest.id+"/submit",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({answers})});
+  const d=await r.json().catch(()=>({error:"حدث خطأ"}));
+  if(r.status===401){location.href="/login.html";return}
+  if(r.status===429){
+    document.getElementById("lockedNotice").innerHTML=`<div class="result-card failed"><h2>إعادة المحاولة موقوفة مؤقتًا</h2><p>${esc(d.error||"لا يمكنك إعادة الاختبار الآن.")}</p><p>يمكنك المحاولة مجددًا بعد: <strong>${d.next_attempt_at?new Date(d.next_attempt_at).toLocaleString("ar-DZ"):"24 ساعة"}</strong></p></div>`;
+    submitBtn.disabled=false;
+    submitBtn.textContent="تسليم الاختبار";
+    window.scrollTo({top:0,behavior:"smooth"});
+    return;
+  }
+  if(!r.ok){
+    document.getElementById("result").innerHTML=`<div class="empty">${esc(d.error||"حدث خطأ")}</div>`;
+    submitBtn.disabled=false;
+    submitBtn.textContent="تسليم الاختبار";
+    return;
+  }
+
+  document.querySelectorAll('#testForm input').forEach(el=>el.disabled=true);
+  document.getElementById("result").innerHTML=`<div class="result-card ${d.passed?"passed":"failed"}"><div class="result-score">${d.score}%</div><h2>${d.passed?"أحسنت، اجتزت الاختبار":"لم تجتز الاختبار"}</h2><p>${d.correct_count} من ${d.total_count} أسئلة صحيحة. نسبة النجاح المطلوبة 70%.</p>${d.passed?'<p>تم تسجيل نتيجتك في حسابك.</p>':'<p>لا يمكنك إعادة هذا الاختبار إلا بعد مرور 24 ساعة كاملة من هذه المحاولة الفاشلة.</p>'}<a class="btn primary" href="/dashboard.html">العودة إلى لوحة الطالب</a></div><div class="review">${d.review.map((q,i)=>{const selected=(q.selected_indices||[]).map(n=>q.options[n]);const right=(q.correct_indices||[]).map(n=>q.options[n]);return `<div class="review-item"><strong>${i+1}. ${esc(q.question_text)}</strong><p>إجاباتك: <b>${selected.length?esc(selected.join("، ")):"لم تختر إجابة"}</b></p><p>الإجابات الصحيحة: <b>${esc(right.join("، "))}</b></p>${q.explanation?`<small>${esc(q.explanation)}</small>`:""}</div>`}).join("")}</div>`;
+  window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"});
 });
 </script></body></html>

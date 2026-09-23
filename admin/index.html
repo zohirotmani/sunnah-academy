@@ -143,7 +143,7 @@
         <div class="admin-section-body">
           <form id="testForm" class="admin-card admin-form-grid">
             <label>عنوان الاختبار<input name="title" placeholder="اختبار ثلاثة أصول" required></label>
-            <label>نسبة النجاح<input name="pass_score" type="number" min="0" max="100" value="70"></label>
+            <label>نسبة النجاح<input name="pass_score" type="number" value="70" readonly></label>
             <label>الكتاب المرتبط<select name="book_id" id="testBook"><option value="">الكتاب المرتبط</option></select></label>
             <label>المستوى المرتبط<select name="level_id" id="testLevel"><option value="">المستوى المرتبط</option></select></label>
             <label class="full">الوصف والتعليمات<textarea name="description" placeholder="تعليمات الاختبار"></textarea></label>
@@ -188,7 +188,7 @@
 
 <div id="questionsBackdrop" class="modal-backdrop" aria-hidden="true">
   <div class="modal">
-    <div class="modal-head"><div><span class="section-kicker">الاختبار</span><h3 id="questionsTitle">أسئلة الاختبار</h3><div class="status" id="questionsSub"></div></div><button class="modal-close" type="button" onclick="closeQuestions()">×</button></div>
+    <div class="modal-head"><div><span class="section-kicker">الاختبار</span><h3 id="questionsTitle">أسئلة الاختبار</h3><div class="status" id="questionsSub"></div></div><div class="actions"><button class="btn small gold" type="button" id="addQuestionBtn">إضافة سؤال</button><button class="modal-close" type="button" onclick="closeQuestions()">×</button></div></div>
     <div id="questionsList" class="question-list"></div>
   </div>
 </div>
@@ -245,10 +245,69 @@ function editSubject(id){const x=state.subjects.find(z=>Number(z.id)===Number(id
 function editScholar(id){const x=state.scholars.find(z=>Number(z.id)===Number(id));openModal('تعديل العالم',`<input name="name" value="${esc(x.name)}" required><textarea class="full" name="biography">${esc(x.biography||'')}</textarea><input class="full" name="image" type="file" accept="image/*"><small class="status full">اترك الصورة فارغة للإبقاء على الصورة الحالية.</small>`,async e=>{e.preventDefault();try{await api('/api/scholars/'+id,{method:'PUT',body:new FormData(e.target)});closeModal();await load()}catch(err){alert(err.message)}})}
 function editBook(id){const b=state.books.find(z=>Number(z.id)===Number(id));openModal('تعديل بيانات الكتاب',`<input name="title" value="${esc(b.title)}" required><input name="author" value="${esc(b.author||'')}"><select name="scholar_id">${state.scholars.map(x=>`<option value="${x.id}" ${Number(x.id)===Number(b.scholar_id)?'selected':''}>${esc(x.name)}</option>`).join('')}</select><select name="subject_id">${state.subjects.map(x=>`<option value="${x.id}" ${Number(x.id)===Number(b.subject_id)?'selected':''}>${esc(x.name)}</option>`).join('')}</select><select name="level_id">${state.levels.map(x=>`<option value="${x.id}" ${Number(x.id)===Number(b.level_id)?'selected':''}>${esc(x.name)}</option>`).join('')}</select><input name="page_count" type="number" min="0" value="${esc(b.page_count||0)}"><textarea class="full" name="description">${esc(b.description||'')}</textarea>`,async e=>{e.preventDefault();try{await api('/api/books/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(e.target)))});closeModal();await load()}catch(err){alert(err.message)}})}
 function editTest(id){const t=state.tests.find(z=>Number(z.id)===Number(id));openModal('تعديل الاختبار',`<input name="title" value="${esc(t.title)}" required><input name="pass_score" type="number" min="0" max="100" value="${esc(t.pass_score)}"><select name="book_id">${state.books.map(x=>`<option value="${x.id}" ${Number(x.id)===Number(t.book_id)?'selected':''}>${esc(x.title)}</option>`).join('')}</select><select name="level_id">${state.levels.map(x=>`<option value="${x.id}" ${Number(x.id)===Number(t.level_id)?'selected':''}>${esc(x.name)}</option>`).join('')}</select><textarea class="full" name="description">${esc(t.description||'')}</textarea>`,async e=>{e.preventDefault();try{await api('/api/tests/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(e.target)))});closeModal();await load()}catch(err){alert(err.message)}})}
-async function openQuestions(testId){const t=state.tests.find(x=>Number(x.id)===Number(testId));$('questionsTitle').textContent='أسئلة: '+(t?.title||'الاختبار');$('questionsSub').textContent='يمكنك تعديل السؤال أو حذفه.';const qs=await api('/api/admin/tests/'+testId+'/questions');$('questionsList').innerHTML=qs.length?qs.map((q,i)=>{const payload=encodeURIComponent(JSON.stringify(q));return `<div class="question-row"><div><div class="qtext">${i+1}. ${esc(q.question_text)}</div><small>الإجابة الصحيحة: ${Number(q.correct_index)+1}</small></div><div class="actions"><button class="btn small ghost" onclick="editQuestionEncoded(${testId},'${payload}')">تعديل</button><button class="btn small danger" onclick="deleteQuestion(${testId},${q.id})">حذف</button></div></div>`}).join(''):adminEmpty('لا توجد أسئلة لهذا الاختبار');$('questionsBackdrop').classList.add('show')}
-function closeQuestions(){$('questionsBackdrop').classList.remove('show')}
+async function openQuestions(testId){
+  const t=state.tests.find(x=>Number(x.id)===Number(testId));
+  $('questionsTitle').textContent='أسئلة: '+(t?.title||'الاختبار');
+  try{
+    const qs=await api('/api/admin/tests/'+testId+'/questions');
+    $('questionsSub').textContent=`${qs.length}/10 أسئلة — يمكن أن تكون للسؤال إجابة صحيحة واحدة أو عدة إجابات.`;
+    $('addQuestionBtn').disabled=qs.length>=10;
+    $('addQuestionBtn').textContent=qs.length>=10?'اكتمل الاختبار':'إضافة سؤال';
+    $('addQuestionBtn').onclick=()=>addQuestion(testId,qs.length);
+    $('questionsList').innerHTML=qs.length?qs.map((q,i)=>{
+      const payload=encodeURIComponent(JSON.stringify(q));
+      const correct=(q.correct_indices||[]).length;
+      return `<div class="question-row"><div><div class="qtext">${i+1}. ${esc(q.question_text)}</div><small>عدد الإجابات الصحيحة: ${correct}</small></div><div class="actions"><button class="btn small ghost" onclick="editQuestionEncoded(${testId},'${payload}')">تعديل</button><button class="btn small danger" onclick="deleteQuestion(${testId},${q.id})">حذف</button></div></div>`
+    }).join(''):adminEmpty('لا توجد أسئلة بعد — أضف السؤال الأول');
+    $('questionsBackdrop').classList.add('show');
+    $('questionsBackdrop').setAttribute('aria-hidden','false');
+  }catch(e){alert(e.message)}
+}
+function closeQuestions(){$('questionsBackdrop').classList.remove('show');$('questionsBackdrop').setAttribute('aria-hidden','true')}
+function questionEditorHtml(q={}){
+  const opts=Array.isArray(q.options)&&q.options.length===10?q.options:Array.from({length:10},()=>"");
+  const selected=new Set(Array.isArray(q.correct_indices)?q.correct_indices.map(Number):[Number(q.correct_index)]);
+  return `<textarea class="full" name="question_text" required placeholder="اكتب نص السؤال">${esc(q.question_text||'')}</textarea>
+  <div class="full" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${opts.map((v,i)=>`<label style="display:flex;flex-direction:column;gap:5px"><span>الخيار ${i+1}</span><input name="option_${i}" value="${esc(v)}" required></label>`).join('')}</div>
+  <div class="full" style="padding:12px;border:1px dashed var(--line);border-radius:10px;background:#fffaf1">
+    <strong>الإجابات الصحيحة</strong>
+    <p class="status">حدد إجابة واحدة أو عدة إجابات، ويمكن أن تكون جميع الخيارات صحيحة.</p>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">${opts.map((_,i)=>`<label style="display:flex;align-items:center;gap:7px;font-weight:500"><input type="checkbox" name="correct_${i}" value="${i}" ${selected.has(i)?'checked':''}> الخيار ${i+1}</label>`).join('')}</div>
+  </div>
+  <input name="sort_order" type="number" value="${esc(q.sort_order||0)}" placeholder="ترتيب السؤال">
+  <textarea class="full" name="explanation" placeholder="شرح الإجابة (اختياري)">${esc(q.explanation||'')}</textarea>`;
+}
+function addQuestion(testId,count){
+  if(count>=10){alert('هذا الاختبار يحتوي بالفعل على 10 أسئلة.');return;}
+  openModal('إضافة سؤال جديد',questionEditorHtml({sort_order:count+1}),async e=>{
+    e.preventDefault();
+    const f=new FormData(e.target);
+    const options=Array.from({length:10},(_,i)=>f.get('option_'+i)||'');
+    const correct_indices=Array.from({length:10},(_,i)=>f.has('correct_'+i)?i:null).filter(v=>v!==null);
+    if(!correct_indices.length){alert('اختر إجابة صحيحة واحدة على الأقل');return}
+    try{
+      await api(`/api/tests/${testId}/questions`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question_text:f.get('question_text'),options,correct_indices,sort_order:Number(f.get('sort_order')||0),explanation:f.get('explanation')||''})});
+      closeModal();
+      await openQuestions(testId);
+      await load();
+    }catch(err){alert(err.message)}
+  });
+}
 function editQuestionEncoded(testId,payload){editQuestion(testId,JSON.parse(decodeURIComponent(payload)))}
-function editQuestion(testId,q){const opts=(q.options||[]);const html=`<textarea class="full" name="question_text" required>${esc(q.question_text)}</textarea>${opts.map((v,i)=>`<input name="option_${i}" value="${esc(v)}" placeholder="الخيار ${i+1}" required>`).join('')}<select name="correct_index">${opts.map((_,i)=>`<option value="${i}" ${Number(q.correct_index)===i?'selected':''}>الإجابة الصحيحة: ${i+1}</option>`).join('')}</select><input name="sort_order" type="number" value="${esc(q.sort_order||0)}"><textarea class="full" name="explanation">${esc(q.explanation||'')}</textarea>`;openModal('تعديل السؤال',html,async e=>{e.preventDefault();const f=new FormData(e.target);const options=Array.from({length:10},(_,i)=>f.get('option_'+i));try{await api(`/api/tests/${testId}/questions/${q.id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({question_text:f.get('question_text'),options,correct_index:Number(f.get('correct_index')),sort_order:Number(f.get('sort_order')||0),explanation:f.get('explanation')||''})});closeModal();openQuestions(testId)}catch(err){alert(err.message)}})}
+function editQuestion(testId,q){
+  openModal('تعديل السؤال',questionEditorHtml(q),async e=>{
+    e.preventDefault();
+    const f=new FormData(e.target);
+    const options=Array.from({length:10},(_,i)=>f.get('option_'+i)||'');
+    const correct_indices=Array.from({length:10},(_,i)=>f.has('correct_'+i)?i:null).filter(v=>v!==null);
+    if(!correct_indices.length){alert('اختر إجابة صحيحة واحدة على الأقل');return}
+    try{
+      await api(`/api/tests/${testId}/questions/${q.id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({question_text:f.get('question_text'),options,correct_indices,sort_order:Number(f.get('sort_order')||0),explanation:f.get('explanation')||''})});
+      closeModal();
+      await openQuestions(testId);
+    }catch(err){alert(err.message)}
+  });
+}
 async function deleteQuestion(testId,qid){if(!confirm('حذف هذا السؤال؟'))return;try{await api(`/api/tests/${testId}/questions/${qid}`,{method:'DELETE'});await openQuestions(testId);await load()}catch(e){alert(e.message)}}
 
 $('levelForm').addEventListener('submit',async e=>{e.preventDefault();try{await api('/api/levels',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(e.target)))});e.target.reset();$('levelMsg').textContent='تمت الإضافة';await load()}catch(err){$('levelMsg').textContent=err.message}});

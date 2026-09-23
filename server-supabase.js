@@ -95,6 +95,27 @@ function cleanInt(value, fallback = null) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function normalizeCorrectIndices(value, legacyIndex = null) {
+  let arr = [];
+  try {
+    if (Array.isArray(value)) arr = value;
+    else if (typeof value === "string" && value.trim()) arr = JSON.parse(value);
+  } catch {
+    arr = [];
+  }
+  if (!Array.isArray(arr) || !arr.length) {
+    const legacy = Number(legacyIndex);
+    if (Number.isInteger(legacy) && legacy >= 0 && legacy <= 9) arr = [legacy];
+  }
+  return [...new Set(arr.map(Number).filter(n => Number.isInteger(n) && n >= 0 && n <= 9))].sort((a,b) => a-b);
+}
+
+function sameAnswerSet(a, b) {
+  const aa = normalizeCorrectIndices(a);
+  const bb = normalizeCorrectIndices(b);
+  return aa.length === bb.length && aa.every((v, i) => v === bb[i]);
+}
+
 function setCookie(res, token) {
   res.setHeader(
     "Set-Cookie",
@@ -280,7 +301,7 @@ async function getTests() {
     description: t.description,
     book_id: t.book_id,
     level_id: t.level_id,
-    pass_score: t.pass_score,
+    pass_score: 70,
     question_count: t.question_count,
     option_count: t.option_count,
     book_title: bookMap.get(Number(t.book_id)) || null,
@@ -309,38 +330,6 @@ app.post("/api/levels", requireAdmin, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-app.put("/api/levels/:id", requireAdmin, async (req, res, next) => {
-  try {
-    const id = Number(req.params.id);
-    const { name, description = "", sort_order = 0 } = req.body;
-    if (!Number.isInteger(id) || !name?.trim()) {
-      return res.status(400).json({ error: "بيانات المستوى غير صحيحة" });
-    }
-    const { data: current, error: currentError } = await supabase
-      .from("levels").select("id").eq("id", id).maybeSingle();
-    if (currentError) throw currentError;
-    if (!current) return res.status(404).json({ error: "المستوى غير موجود" });
-
-    const { error } = await supabase.from("levels").update({
-      name: name.trim(),
-      description,
-      sort_order: cleanInt(sort_order, 0)
-    }).eq("id", id);
-    if (error) throw error;
-    res.json({ success: true });
-  } catch (e) { next(e); }
-});
-
-app.delete("/api/levels/:id", requireAdmin, async (req, res, next) => {
-  try {
-    const id = Number(req.params.id);
-    if (!Number.isInteger(id)) return res.status(400).json({ error: "معرّف المستوى غير صحيح" });
-    const { error } = await supabase.from("levels").delete().eq("id", id);
-    if (error) throw error;
-    res.json({ success: true });
-  } catch (e) { next(e); }
-});
-
 // ---------- Subjects ----------
 app.get("/api/subjects", async (req, res, next) => {
   try { res.json(await getSubjects()); } catch (e) { next(e); }
@@ -353,37 +342,6 @@ app.post("/api/subjects", requireAdmin, async (req, res, next) => {
     const { data, error } = await supabase.from("subjects").insert({ name: name.trim(), description }).select("id").single();
     if (error) throw error;
     res.json({ success: true, id: data.id });
-  } catch (e) { next(e); }
-});
-
-app.put("/api/subjects/:id", requireAdmin, async (req, res, next) => {
-  try {
-    const id = Number(req.params.id);
-    const { name, description = "" } = req.body;
-    if (!Number.isInteger(id) || !name?.trim()) {
-      return res.status(400).json({ error: "بيانات المادة غير صحيحة" });
-    }
-    const { data: current, error: currentError } = await supabase
-      .from("subjects").select("id").eq("id", id).maybeSingle();
-    if (currentError) throw currentError;
-    if (!current) return res.status(404).json({ error: "المادة غير موجودة" });
-
-    const { error } = await supabase.from("subjects").update({
-      name: name.trim(),
-      description
-    }).eq("id", id);
-    if (error) throw error;
-    res.json({ success: true });
-  } catch (e) { next(e); }
-});
-
-app.delete("/api/subjects/:id", requireAdmin, async (req, res, next) => {
-  try {
-    const id = Number(req.params.id);
-    if (!Number.isInteger(id)) return res.status(400).json({ error: "معرّف المادة غير صحيح" });
-    const { error } = await supabase.from("subjects").delete().eq("id", id);
-    if (error) throw error;
-    res.json({ success: true });
   } catch (e) { next(e); }
 });
 
@@ -661,12 +619,22 @@ app.get("/api/tests", async (req, res, next) => {
 
 app.get("/api/tests/:id", async (req, res, next) => {
   try {
-    const { data: test, error: testError } = await supabase.from("tests").select("*").eq("id", req.params.id).eq("visible", true).maybeSingle();
+    const { data: test, error: testError } = await supabase
+      .from("tests")
+      .select("*")
+      .eq("id", req.params.id)
+      .eq("visible", true)
+      .maybeSingle();
     if (testError) throw testError;
     if (!test) return res.status(404).json({ error: "الاختبار غير موجود" });
 
     const [{ data: questions, error: qError }, { data: books }, { data: levels }] = await Promise.all([
-      supabase.from("questions").select("id,question_text,options_json,sort_order").eq("test_id", test.id).order("sort_order", { ascending: true }).order("id", { ascending: true }),
+      supabase
+        .from("questions")
+        .select("id,question_text,options_json,sort_order")
+        .eq("test_id", test.id)
+        .order("sort_order", { ascending: true })
+        .order("id", { ascending: true }),
       supabase.from("books").select("id,title"),
       supabase.from("levels").select("id,name")
     ]);
@@ -680,76 +648,219 @@ app.get("/api/tests/:id", async (req, res, next) => {
       options: JSON.parse(q.options_json)
     }));
 
-    res.json({ ...test, book_title: book?.title || null, level_name: level?.name || null, questions: normalizedQuestions });
+    res.json({
+      ...test,
+      pass_score: 70,
+      book_title: book?.title || null,
+      level_name: level?.name || null,
+      questions: normalizedQuestions
+    });
   } catch (e) { next(e); }
 });
 
 app.post("/api/tests", requireAdmin, async (req, res, next) => {
   try {
-    const { title, description = "", book_id = null, level_id = null, pass_score = 70 } = req.body;
+    const { title, description = "", book_id = null, level_id = null } = req.body;
     if (!title?.trim()) return res.status(400).json({ error: "عنوان الاختبار مطلوب" });
     const { data, error } = await supabase.from("tests").insert({
       title: title.trim(), description, book_id: cleanInt(book_id), level_id: cleanInt(level_id),
-      pass_score: Math.min(100, Math.max(0, Number(pass_score) || 70)), question_count: 0, option_count: 10
+      pass_score: 70, question_count: 0, option_count: 10
     }).select("id").single();
     if (error) throw error;
     res.json({ success: true, id: data.id });
+  } catch (e) { next(e); }
+});
+
+app.get("/api/admin/tests/:id/questions", requireAdmin, async (req, res, next) => {
+  try {
+    const { data, error } = await supabase
+      .from("questions")
+      .select("id,question_text,options_json,correct_indices_json,correct_index,explanation,sort_order")
+      .eq("test_id", req.params.id)
+      .order("sort_order", { ascending: true })
+      .order("id", { ascending: true });
+    if (error) throw error;
+    res.json((data || []).map(q => ({
+      id: q.id,
+      question_text: q.question_text,
+      options: JSON.parse(q.options_json),
+      correct_indices: normalizeCorrectIndices(q.correct_indices_json, q.correct_index),
+      sort_order: q.sort_order || 0,
+      explanation: q.explanation || ""
+    })));
   } catch (e) { next(e); }
 });
 
 app.post("/api/tests/:id/questions", requireAdmin, async (req, res, next) => {
   try {
-    const { question_text, options, correct_index, explanation = "", sort_order = 0 } = req.body;
+    const { question_text, options, correct_indices, correct_index, explanation = "", sort_order = 0 } = req.body;
     if (!question_text?.trim() || !Array.isArray(options) || options.length !== 10) {
       return res.status(400).json({ error: "السؤال يجب أن يحتوي على 10 خيارات بالضبط" });
     }
-    if (Number(correct_index) < 0 || Number(correct_index) > 9) {
-      return res.status(400).json({ error: "الإجابة الصحيحة يجب أن تكون ضمن الخيارات العشرة" });
-    }
 
-    const { data: test, error: testError } = await supabase.from("tests").select("id").eq("id", req.params.id).maybeSingle();
+    const correct = normalizeCorrectIndices(correct_indices, correct_index);
+    if (!correct.length) return res.status(400).json({ error: "اختر إجابة صحيحة واحدة على الأقل" });
+
+    const { data: test, error: testError } = await supabase
+      .from("tests")
+      .select("id")
+      .eq("id", req.params.id)
+      .maybeSingle();
     if (testError) throw testError;
     if (!test) return res.status(404).json({ error: "الاختبار غير موجود" });
 
+    const { count, error: countError } = await supabase
+      .from("questions")
+      .select("id", { count: "exact", head: true })
+      .eq("test_id", req.params.id);
+    if (countError) throw countError;
+    if ((count || 0) >= 10) return res.status(400).json({ error: "الاختبار يجب أن يحتوي على 10 أسئلة فقط" });
+
     const { data, error } = await supabase.from("questions").insert({
-      test_id: Number(req.params.id), question_text: question_text.trim(), options_json: JSON.stringify(options.map(String)),
-      correct_index: Number(correct_index), explanation, sort_order: Number(sort_order) || 0
+      test_id: Number(req.params.id),
+      question_text: question_text.trim(),
+      options_json: JSON.stringify(options.map(String)),
+      correct_index: Number(correct[0]),
+      correct_indices_json: JSON.stringify(correct),
+      explanation,
+      sort_order: Number(sort_order) || 0
     }).select("id").single();
     if (error) throw error;
 
-    const { count, error: countError } = await supabase.from("questions").select("id", { count: "exact", head: true }).eq("test_id", req.params.id);
-    if (countError) throw countError;
-    const { error: updateError } = await supabase.from("tests").update({ question_count: count || 0 }).eq("id", req.params.id);
+    const newCount = (count || 0) + 1;
+    const { error: updateError } = await supabase.from("tests").update({ question_count: newCount }).eq("id", req.params.id);
     if (updateError) throw updateError;
 
-    res.json({ success: true, id: data.id });
+    res.json({ success: true, id: data.id, question_count: newCount });
+  } catch (e) { next(e); }
+});
+
+app.put("/api/tests/:testId/questions/:questionId", requireAdmin, async (req, res, next) => {
+  try {
+    const { question_text, options, correct_indices, correct_index, explanation = "", sort_order = 0 } = req.body;
+    if (!question_text?.trim() || !Array.isArray(options) || options.length !== 10) {
+      return res.status(400).json({ error: "السؤال يجب أن يحتوي على 10 خيارات بالضبط" });
+    }
+    const correct = normalizeCorrectIndices(correct_indices, correct_index);
+    if (!correct.length) return res.status(400).json({ error: "اختر إجابة صحيحة واحدة على الأقل" });
+
+    const { data: existing, error: existingError } = await supabase
+      .from("questions")
+      .select("id")
+      .eq("id", req.params.questionId)
+      .eq("test_id", req.params.testId)
+      .maybeSingle();
+    if (existingError) throw existingError;
+    if (!existing) return res.status(404).json({ error: "السؤال غير موجود" });
+
+    const { error } = await supabase.from("questions").update({
+      question_text: question_text.trim(),
+      options_json: JSON.stringify(options.map(String)),
+      correct_index: Number(correct[0]),
+      correct_indices_json: JSON.stringify(correct),
+      explanation,
+      sort_order: Number(sort_order) || 0
+    }).eq("id", req.params.questionId).eq("test_id", req.params.testId);
+    if (error) throw error;
+
+    res.json({ success: true });
+  } catch (e) { next(e); }
+});
+
+app.delete("/api/tests/:testId/questions/:questionId", requireAdmin, async (req, res, next) => {
+  try {
+    const { data: existing, error: existingError } = await supabase
+      .from("questions")
+      .select("id")
+      .eq("id", req.params.questionId)
+      .eq("test_id", req.params.testId)
+      .maybeSingle();
+    if (existingError) throw existingError;
+    if (!existing) return res.status(404).json({ error: "السؤال غير موجود" });
+
+    const { error } = await supabase.from("questions").delete().eq("id", req.params.questionId).eq("test_id", req.params.testId);
+    if (error) throw error;
+
+    const { count, error: countError } = await supabase
+      .from("questions")
+      .select("id", { count: "exact", head: true })
+      .eq("test_id", req.params.testId);
+    if (countError) throw countError;
+    await supabase.from("tests").update({ question_count: count || 0 }).eq("id", req.params.testId);
+
+    res.json({ success: true });
   } catch (e) { next(e); }
 });
 
 app.post("/api/tests/:id/submit", requireStudent, async (req, res, next) => {
   try {
-    const { data: test, error: testError } = await supabase.from("tests").select("*").eq("id", req.params.id).eq("visible", true).maybeSingle();
+    const { data: test, error: testError } = await supabase
+      .from("tests")
+      .select("*")
+      .eq("id", req.params.id)
+      .eq("visible", true)
+      .maybeSingle();
     if (testError) throw testError;
     if (!test) return res.status(404).json({ error: "الاختبار غير موجود" });
 
-    const { data: questions, error: qError } = await supabase.from("questions").select("id,correct_index,question_text,options_json,explanation,sort_order").eq("test_id", test.id).order("sort_order", { ascending: true }).order("id", { ascending: true });
+    const { data: failedAttempt, error: failedError } = await supabase
+      .from("attempts")
+      .select("created_at")
+      .eq("user_id", req.user.id)
+      .eq("test_id", test.id)
+      .eq("passed", false)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (failedError) throw failedError;
+
+    if (failedAttempt?.created_at) {
+      const retryAt = new Date(new Date(failedAttempt.created_at).getTime() + 24 * 60 * 60 * 1000);
+      if (Date.now() < retryAt.getTime()) {
+        return res.status(429).json({
+          error: "لم تجتز الاختبار. لا يمكنك إعادة المحاولة إلا بعد مرور 24 ساعة كاملة من آخر محاولة فاشلة.",
+          next_attempt_at: retryAt.toISOString()
+        });
+      }
+    }
+
+    const { data: questions, error: qError } = await supabase
+      .from("questions")
+      .select("id,correct_indices_json,correct_index,question_text,options_json,explanation,sort_order")
+      .eq("test_id", test.id)
+      .order("sort_order", { ascending: true })
+      .order("id", { ascending: true });
     if (qError) throw qError;
+
+    if ((questions || []).length !== 10) {
+      return res.status(400).json({ error: "هذا الاختبار غير جاهز بعد. يجب أن يحتوي على 10 أسئلة بالضبط." });
+    }
 
     const answers = req.body.answers || {};
     let correct = 0;
+    const normalizedAnswers = {};
+
     for (const q of (questions || [])) {
-      const userAnswer = Number(answers[q.id]);
-      if (Number.isInteger(userAnswer) && userAnswer === q.correct_index) correct++;
+      const selected = normalizeCorrectIndices(answers[q.id]);
+      normalizedAnswers[q.id] = selected;
+      const right = normalizeCorrectIndices(q.correct_indices_json, q.correct_index);
+      if (sameAnswerSet(selected, right)) correct++;
     }
 
-    const total = (questions || []).length;
-    const score = total ? Math.round((correct / total) * 100) : 0;
-    const passed = score >= test.pass_score;
+    const total = 10;
+    const score = Math.round((correct / total) * 100);
+    const passScore = 70;
+    const passed = score >= passScore;
 
     const { data: attempt, error: attemptError } = await supabase.from("attempts").insert({
-      user_id: req.user.id, test_id: test.id, score, correct_count: correct, total_count: total,
-      passed, answers_json: JSON.stringify(answers)
-    }).select("id").single();
+      user_id: req.user.id,
+      test_id: test.id,
+      score,
+      correct_count: correct,
+      total_count: total,
+      passed,
+      answers_json: JSON.stringify(normalizedAnswers)
+    }).select("id,created_at").single();
     if (attemptError) throw attemptError;
 
     if (passed && test.level_id) {
@@ -775,19 +886,27 @@ app.post("/api/tests/:id/submit", requireStudent, async (req, res, next) => {
       }
     }
 
-    const review = (questions || []).map(q => ({
-      id: q.id,
-      question_text: q.question_text,
-      options: JSON.parse(q.options_json),
-      correct_index: q.correct_index,
-      selected_index: Number.isInteger(Number(answers[q.id])) ? Number(answers[q.id]) : null,
-      explanation: q.explanation || ""
-    }));
+    const review = (questions || []).map(q => {
+      const options = JSON.parse(q.options_json);
+      const right = normalizeCorrectIndices(q.correct_indices_json, q.correct_index);
+      const selected = normalizedAnswers[q.id] || [];
+      return {
+        id: q.id,
+        question_text: q.question_text,
+        options,
+        correct_indices: right,
+        selected_indices: selected,
+        explanation: q.explanation || ""
+      };
+    });
 
     res.json({
       attempt_id: attempt.id,
-      score, correct_count: correct, total_count: total, passed,
-      pass_score: test.pass_score,
+      score,
+      correct_count: correct,
+      total_count: total,
+      passed,
+      pass_score: passScore,
       review
     });
   } catch (e) { next(e); }
@@ -802,77 +921,6 @@ app.get("/api/attempts/:id", requireStudent, async (req, res, next) => {
     if (testError) throw testError;
     res.json({ ...attempt, test_title: test?.title || null });
   } catch (e) { next(e); }
-});
-
-// ---------- Admin students ----------
-app.get("/api/admin/students", requireAdmin, async (req, res, next) => {
-  try {
-    const { data: students, error: studentsError } = await supabase
-      .from("users")
-      .select("id,name,email,current_level_id,created_at")
-      .eq("role", "student")
-      .order("created_at", { ascending: false });
-
-    if (studentsError) throw studentsError;
-
-    const { data: levels, error: levelsError } = await supabase
-      .from("levels")
-      .select("id,name");
-
-    if (levelsError) throw levelsError;
-
-    const levelMap = new Map(
-      (levels || []).map(level => [Number(level.id), level.name])
-    );
-
-    res.json(
-      (students || []).map(student => ({
-        ...student,
-        level_name:
-          levelMap.get(Number(student.current_level_id)) || "لم يحدد"
-      }))
-    );
-  } catch (e) {
-    next(e);
-  }
-});
-
-app.delete("/api/admin/students/:id", requireAdmin, async (req, res, next) => {
-  try {
-    const id = Number(req.params.id);
-
-    if (!Number.isInteger(id)) {
-      return res.status(400).json({ error: "معرّف الطالب غير صحيح" });
-    }
-
-    const { data: student, error: studentError } = await supabase
-      .from("users")
-      .select("id,role")
-      .eq("id", id)
-      .maybeSingle();
-
-    if (studentError) throw studentError;
-
-    if (!student) {
-      return res.status(404).json({ error: "الطالب غير موجود" });
-    }
-
-    if (student.role !== "student") {
-      return res.status(403).json({ error: "لا يمكن حذف هذا الحساب من هنا" });
-    }
-
-    const { error } = await supabase
-      .from("users")
-      .delete()
-      .eq("id", id)
-      .eq("role", "student");
-
-    if (error) throw error;
-
-    res.json({ success: true });
-  } catch (e) {
-    next(e);
-  }
 });
 
 // ---------- Admin account ----------
