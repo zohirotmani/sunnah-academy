@@ -1,106 +1,242 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>إدارة أكاديمية السنة</title><link rel="stylesheet" href="/css/style.css">
-<style>
-  .success{color:var(--forest);font-weight:700}
-  .muted{color:var(--muted)}
-</style>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>لوحة إدارة أكاديمية السنة</title>
+<link rel="stylesheet" href="/css/style.css">
 </head>
-<body>
-<header class="site-header"><div class="container nav-wrap"><a class="brand" href="/"><span class="brand-mark">❈</span><span><strong>أكاديمية السنة</strong><small>لوحة الإدارة</small></span></a><nav class="main-nav"><a href="/">الموقع</a></nav></div></header>
-<main class="page-shell"><div class="container">
-<div class="dashboard-head"><div class="eyebrow">إدارة المحتوى</div><h1>لوحة التحكم</h1><p>أضف المستويات والمواد والعلماء والكتب والاختبارات.</p></div>
-<div id="summary" class="feature-row"></div>
-<div class="admin-grid">
-<section class="dash-panel">
-  <h2>حساب المدير</h2>
-  <p class="muted">غيّر البريد الإلكتروني وكلمة المرور لحساب الإدارة الحالي.</p>
-  <form id="accountForm" class="form-grid">
-    <input id="adminName" name="name" placeholder="اسم المدير">
-    <input id="adminEmail" name="email" type="email" placeholder="البريد الإلكتروني" required>
-    <input name="current_password" type="password" placeholder="كلمة المرور الحالية" required>
-    <input name="new_password" type="password" minlength="8" placeholder="كلمة المرور الجديدة — اختياري">
-    <button class="btn primary" type="submit">حفظ بيانات الحساب</button>
-    <div id="accountMsg"></div>
-  </form>
-</section>
+<body class="admin-page">
+<header class="site-header admin-header">
+  <div class="admin-topline"><span>أكاديمية السنة</span><strong>زهير بن عمرو أبو معاذ</strong></div>
+  <div class="container nav-wrap">
+    <a class="brand" href="/">
+      <span class="brand-mark">❈</span>
+      <span><strong>أكاديمية السنة</strong><small>لوحة الإدارة</small></span>
+    </a>
+    <nav class="main-nav">
+      <a href="/">الموقع</a>
+      <a href="/library.html">المكتبة</a>
+      <a href="/scholars.html">العلماء</a>
+      <a class="admin-link" href="#overview">الإدارة</a>
+    </nav>
+  </div>
+</header>
 
-<section class="dash-panel"><h2>إضافة مستوى</h2><form id="levelForm" class="form-grid"><input name="name" placeholder="المستوى الأول" required><input name="sort_order" type="number" placeholder="الترتيب"><textarea name="description" placeholder="وصف المستوى"></textarea><button class="btn primary">إضافة</button><div id="levelMsg"></div></form></section>
-<section class="dash-panel"><h2>إضافة مادة</h2><form id="subjectForm" class="form-grid"><input name="name" placeholder="العقيدة" required><textarea name="description" placeholder="وصف المادة"></textarea><button class="btn primary">إضافة</button><div id="subjectMsg"></div></form></section>
-<section class="dash-panel"><h2>إضافة عالم</h2><form id="scholarForm" class="form-grid"><input name="name" placeholder="اسم العالم" required><textarea name="biography" placeholder="نبذة"></textarea><button class="btn primary">إضافة</button><div id="scholarMsg"></div></form></section>
-<section class="dash-panel"><h2>رفع كتاب PDF</h2><form id="bookForm" class="form-grid"><input name="title" placeholder="اسم الكتاب" required><input name="author" placeholder="المؤلف"><select name="scholar_id" id="scholarSelect"><option value="">العالم</option></select><select name="subject_id" id="subjectSelect"><option value="">المادة</option></select><select name="level_id" id="levelSelect"><option value="">المستوى</option></select><select name="level"><option value="level-1">PDF — المستوى 1</option><option value="level-2">PDF — المستوى 2</option><option value="level-3">PDF — المستوى 3</option><option value="level-4">PDF — المستوى 4</option><option value="level-5">PDF — المستوى 5</option></select><input name="page_count" type="number" min="0" placeholder="عدد الصفحات (اختياري)"><textarea name="description" placeholder="وصف الكتاب"></textarea><input name="pdf" type="file" accept="application/pdf" required><button class="btn primary">رفع الكتاب</button><div id="bookMsg"></div></form></section>
-<section class="dash-panel wide-admin"><h2>الكتب المرفوعة</h2><p class="muted">يمكنك حذف الكتاب وسيُحذف ملف PDF المرتبط به من الخادم.</p><div id="booksList"></div></section>
-<section class="dash-panel wide-admin"><h2>إنشاء اختبار</h2><form id="testForm" class="form-grid"><input name="title" placeholder="عنوان الاختبار" required><textarea name="description" placeholder="وصف وتعليمات الاختبار"></textarea><select name="book_id" id="testBookSelect"><option value="">الكتاب المرتبط</option></select><select name="level_id" id="testLevelSelect"><option value="">المستوى المرتبط</option></select><input name="pass_score" type="number" min="1" max="100" value="70" placeholder="نسبة النجاح"><button class="btn primary">إنشاء الاختبار</button><div id="testMsg"></div></form><div id="testsList"></div></section>
-<section class="dash-panel wide-admin"><h2>إضافة سؤال إلى اختبار</h2><p class="muted">كل سؤال يجب أن يحتوي على <strong>10 خيارات بالضبط</strong>، ويُحدد خيار واحد بوصفه الصحيح.</p><form id="questionForm" class="form-grid"><select name="test_id" id="questionTestSelect" required><option value="">اختر الاختبار</option></select><textarea name="question_text" placeholder="نص السؤال" required></textarea><div id="optionsFields"></div><select name="correct_index" id="correctIndex" required><option value="">اختر رقم الخيار الصحيح</option></select><input name="sort_order" type="number" value="0" placeholder="ترتيب السؤال"><textarea name="explanation" placeholder="شرح الإجابة بعد التصحيح (اختياري)"></textarea><button class="btn primary">إضافة السؤال</button><div id="questionMsg"></div></form></section>
+<main class="admin-page-shell">
+  <div class="container admin-layout">
+    <aside class="admin-sidebar">
+      <div class="sidebar-brand"><span class="sidebar-dot">✦</span><div><strong>الإدارة</strong><small>مركز التحكم</small></div></div>
+      <nav class="sidebar-nav">
+        <a class="active" href="#overview">⌂ <span>الرئيسية</span></a>
+        <a href="#levels">01 <span>المستويات</span></a>
+        <a href="#subjects">02 <span>المواد</span></a>
+        <a href="#scholars">03 <span>العلماء</span></a>
+        <a href="#books">04 <span>الكتب</span></a>
+        <a href="#tests">05 <span>الاختبارات</span></a>
+        <a href="#students">06 <span>الطلاب</span></a>
+        <div class="side-divider"></div>
+        <a href="#account">⚙ <span>حساب المدير</span></a>
+        <a href="/" id="logoutLink">↪ <span>تسجيل الخروج</span></a>
+      </nav>
+    </aside>
+
+    <section class="admin-main">
+      <section id="overview" class="admin-hero-panel">
+        <div>
+          <span class="eyebrow">مركز إدارة الأكاديمية</span>
+          <h1>بسم الله، <span id="welcomeName">مدير الأكاديمية</span></h1>
+          <p>إدارة المسار العلمي والمحتوى والعلماء والكتب والاختبارات والطلاب في واجهة واحدة هادئة وواضحة.</p>
+          <div class="hero-shortcuts">
+            <a class="btn primary" href="#books">رفع كتاب</a>
+            <a class="btn soft" href="#scholars">إضافة عالم</a>
+            <a class="btn soft" href="#tests">إنشاء اختبار</a>
+          </div>
+        </div>
+        <div class="signature-card">
+          <span>صاحب الأكاديمية</span>
+          <strong>زهير بن عمرو أبو معاذ</strong>
+          <small>إدارة المحتوى العلمي</small>
+        </div>
+      </section>
+
+      <div id="stats" class="admin-stats"></div>
+
+      <section id="levels" class="admin-section">
+        <div class="admin-section-head">
+          <div><span class="section-kicker">01</span><h2>المستويات</h2><p>بناء مسار الطالب من التأسيس إلى التخصص.</p></div>
+          <a href="#levelForm" class="section-action">إضافة مستوى +</a>
+        </div>
+        <div class="admin-section-body admin-two">
+          <form id="levelForm" class="admin-card form-grid">
+            <div class="form-title"><h3>مستوى جديد</h3><p>اكتب الاسم والوصف والترتيب.</p></div>
+            <label>اسم المستوى<input name="name" placeholder="المستوى الأول" required></label>
+            <label>ترتيب المستوى<input name="sort_order" type="number" min="1" placeholder="1" value="1" required></label>
+            <label class="full">الوصف<textarea name="description" placeholder="وصف مختصر للمستوى"></textarea></label>
+            <div class="admin-form-actions full"><button class="btn primary" type="submit">إضافة المستوى</button><span id="levelMsg" class="status"></span></div>
+          </form>
+          <div class="admin-card list-card"><div class="list-card-head"><h3>المستويات الحالية</h3><span>تعديل وحذف</span></div><div id="levelsList" class="admin-list"></div></div>
+        </div>
+      </section>
+
+      <section id="subjects" class="admin-section">
+        <div class="admin-section-head">
+          <div><span class="section-kicker">02</span><h2>المواد</h2><p>تنظيم العلوم التي سيدرسها الطالب.</p></div>
+          <a href="#subjectForm" class="section-action">إضافة مادة +</a>
+        </div>
+        <div class="admin-section-body admin-two">
+          <form id="subjectForm" class="admin-card form-grid">
+            <div class="form-title"><h3>مادة جديدة</h3><p>مثل العقيدة أو الفقه أو الحديث.</p></div>
+            <label>اسم المادة<input name="name" placeholder="العقيدة" required></label>
+            <label class="full">الوصف<textarea name="description" placeholder="وصف المادة وما تتضمنه"></textarea></label>
+            <div class="admin-form-actions full"><button class="btn primary" type="submit">إضافة المادة</button><span id="subjectMsg" class="status"></span></div>
+          </form>
+          <div class="admin-card list-card"><div class="list-card-head"><h3>المواد الحالية</h3><span>تعديل وحذف</span></div><div id="subjectsList" class="admin-list"></div></div>
+        </div>
+      </section>
+
+      <section id="scholars" class="admin-section">
+        <div class="admin-section-head">
+          <div><span class="section-kicker">03</span><h2>العلماء</h2><p>إضافة العالم بصورته ونبذته وإدارة بياناته.</p></div>
+          <a href="#scholarForm" class="section-action">إضافة عالم +</a>
+        </div>
+        <div class="admin-section-body admin-two">
+          <form id="scholarForm" class="admin-card form-grid" enctype="multipart/form-data">
+            <div class="form-title"><h3>عالم جديد</h3><p>تظهر الصورة في صفحة العلماء وداخل الكتب المرتبطة.</p></div>
+            <label>اسم العالم<input name="name" placeholder="اسم العالم" required></label>
+            <label class="full">النبذة<textarea name="biography" placeholder="نبذة مختصرة عن العالم"></textarea></label>
+            <label class="full file-field">صورة العالم<input name="image" type="file" accept="image/png,image/jpeg,image/webp"><small>JPG / PNG / WebP — حد أقصى 5MB</small></label>
+            <div class="admin-form-actions full"><button class="btn gold" type="submit">حفظ العالم</button><span id="scholarMsg" class="status"></span></div>
+          </form>
+          <div class="admin-card list-card"><div class="list-card-head"><h3>العلماء الحاليون</h3><span>صورة · تعديل · حذف</span></div><div id="scholarsList" class="admin-list"></div></div>
+        </div>
+      </section>
+
+      <section id="books" class="admin-section">
+        <div class="admin-section-head">
+          <div><span class="section-kicker">04</span><h2>المكتبة</h2><p>رفع الكتب وربطها بالعالم والمادة والمستوى.</p></div>
+          <a href="#bookForm" class="section-action">رفع كتاب +</a>
+        </div>
+        <div class="admin-section-body">
+          <form id="bookForm" class="admin-card admin-form-grid" enctype="multipart/form-data">
+            <label>اسم الكتاب<input name="title" placeholder="اسم الكتاب" required></label>
+            <label>المؤلف كما تريد عرضه<input name="author" placeholder="المؤلف"></label>
+            <label>العالم<select name="scholar_id" id="bookScholar"><option value="">اختر العالم</option></select></label>
+            <label>المادة<select name="subject_id" id="bookSubject"><option value="">اختر المادة</option></select></label>
+            <label>المستوى<select name="level_id" id="bookLevel"><option value="">اختر المستوى</option></select></label>
+            <label>مجلد التخزين<select name="level"><option value="level-1">المستوى 1</option><option value="level-2">المستوى 2</option><option value="level-3">المستوى 3</option><option value="level-4">المستوى 4</option><option value="level-5">المستوى 5</option></select></label>
+            <label>عدد الصفحات<input name="page_count" type="number" min="0" placeholder="0"></label>
+            <label>ملف PDF<input name="pdf" type="file" accept="application/pdf" required></label>
+            <label class="full">وصف الكتاب<textarea name="description" placeholder="وصف موجز لمحتوى الكتاب"></textarea></label>
+            <div class="admin-form-actions full"><button class="btn gold" type="submit">رفع الكتاب</button><span id="bookMsg" class="status"></span></div>
+          </form>
+          <div class="section-list-spacer"></div>
+          <div id="booksList" class="admin-list"></div>
+        </div>
+      </section>
+
+      <section id="tests" class="admin-section">
+        <div class="admin-section-head">
+          <div><span class="section-kicker">05</span><h2>الاختبارات</h2><p>اختبارات من عشرة خيارات مع إدارة كاملة للأسئلة.</p></div>
+          <a href="#testForm" class="section-action">إنشاء اختبار +</a>
+        </div>
+        <div class="admin-section-body">
+          <form id="testForm" class="admin-card admin-form-grid">
+            <label>عنوان الاختبار<input name="title" placeholder="اختبار ثلاثة أصول" required></label>
+            <label>نسبة النجاح<input name="pass_score" type="number" min="0" max="100" value="70"></label>
+            <label>الكتاب المرتبط<select name="book_id" id="testBook"><option value="">الكتاب المرتبط</option></select></label>
+            <label>المستوى المرتبط<select name="level_id" id="testLevel"><option value="">المستوى المرتبط</option></select></label>
+            <label class="full">الوصف والتعليمات<textarea name="description" placeholder="تعليمات الاختبار"></textarea></label>
+            <div class="admin-form-actions full"><button class="btn primary" type="submit">إنشاء الاختبار</button><span id="testMsg" class="status"></span></div>
+          </form>
+          <div class="section-list-spacer"></div>
+          <div id="testsList" class="admin-list"></div>
+        </div>
+      </section>
+
+      <section id="students" class="admin-section">
+        <div class="admin-section-head">
+          <div><span class="section-kicker">06</span><h2>الطلاب</h2><p>عرض الحسابات وتسجيلاتهم وحذف الحساب عند الحاجة.</p></div>
+        </div>
+        <div class="admin-section-body"><div id="studentsList" class="admin-list"></div></div>
+      </section>
+
+      <section id="account" class="admin-section">
+        <div class="admin-section-head">
+          <div><span class="section-kicker">07</span><h2>حساب المدير</h2><p>تغيير اسم المدير والبريد وكلمة المرور.</p></div>
+        </div>
+        <div class="admin-section-body">
+          <form id="accountForm" class="admin-card admin-form-grid">
+            <label>اسم المدير<input id="adminName" name="name" placeholder="اسم المدير"></label>
+            <label>البريد الإلكتروني<input id="adminEmail" name="email" type="email" placeholder="البريد الإلكتروني" required></label>
+            <label>كلمة المرور الحالية<input name="current_password" type="password" placeholder="كلمة المرور الحالية" required></label>
+            <label>كلمة المرور الجديدة<input name="new_password" type="password" minlength="8" placeholder="اختياري"></label>
+            <div class="admin-form-actions full"><button class="btn primary" type="submit">حفظ بيانات الحساب</button><span id="accountMsg" class="status"></span></div>
+          </form>
+        </div>
+      </section>
+    </section>
+  </div>
+</main>
+
+<div id="editBackdrop" class="modal-backdrop" aria-hidden="true">
+  <div class="modal">
+    <div class="modal-head"><div><span class="section-kicker">تعديل</span><h3 id="editTitle">تعديل</h3></div><button class="modal-close" type="button" onclick="closeModal()">×</button></div>
+    <form id="editForm" class="admin-form-grid"></form>
+  </div>
 </div>
-</div></main>
+
+<div id="questionsBackdrop" class="modal-backdrop" aria-hidden="true">
+  <div class="modal">
+    <div class="modal-head"><div><span class="section-kicker">الاختبار</span><h3 id="questionsTitle">أسئلة الاختبار</h3><div class="status" id="questionsSub"></div></div><button class="modal-close" type="button" onclick="closeQuestions()">×</button></div>
+    <div id="questionsList" class="question-list"></div>
+  </div>
+</div>
+
 <footer class="site-footer"><div class="container footer-inner"><div class="footer-brand">أكاديمية السنة</div><div class="footer-credit">زهير بن عمرو أبو معاذ</div></div></footer>
 <script>
-const options=Array.from({length:10},(_,i)=>`<input name="option_${i}" placeholder="الخيار ${i+1}" required>`);
-document.getElementById("optionsFields").innerHTML=options.join("");
-document.getElementById("correctIndex").innerHTML='<option value="">اختر رقم الخيار الصحيح</option>'+Array.from({length:10},(_,i)=>`<option value="${i}">${i+1}</option>`).join("");
-async function api(url,o={}){const r=await fetch(url,o);const d=await r.json().catch(()=>({}));if(r.status===401||r.status===403){location.href="/login.html";return d}if(!r.ok)throw new Error(d.error||"حدث خطأ");return d}
+const state={levels:[],subjects:[],scholars:[],books:[],tests:[],students:[],questions:[]};
+const $=id=>document.getElementById(id);
 function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
-
-async function ensureAdmin(){
-  const r = await fetch("/api/auth/me");
-  if (r.status === 401) {
-    location.href = "/login.html";
-    return null;
-  }
-  const user = await r.json();
-  if (user.role !== "admin") {
-    location.href = "/";
-    return null;
-  }
-  document.getElementById("adminName").value = user.name || "";
-  document.getElementById("adminEmail").value = user.email || "";
-  return user;
-}
-
-document.getElementById("accountForm").addEventListener("submit", async e => {
-  e.preventDefault();
-  const msg = document.getElementById("accountMsg");
-  const form = new FormData(e.target);
-  try {
-    const r = await fetch("/api/admin/account", {
-      method: "PUT",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify(Object.fromEntries(form))
-    });
-    const d = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(d.error || "تعذر حفظ بيانات الحساب");
-    msg.innerHTML = '<span class="success">تم تحديث بيانات المدير بنجاح.</span>';
-    e.target.reset();
-    document.getElementById("adminName").value = d.user.name || "";
-    document.getElementById("adminEmail").value = d.user.email || "";
-  } catch (err) {
-    msg.textContent = err.message;
-  }
-});
-
+async function api(url,o={}){const r=await fetch(url,o);const d=await r.json().catch(()=>({}));if(r.status===401||r.status===403){location.href="/login.html";throw new Error("غير مصرح")}if(!r.ok)throw new Error(d.error||"حدث خطأ");return d}
+async function ensureAdmin(){const r=await fetch("/api/auth/me");if(r.status===401){location.href="/login.html";return null}const u=await r.json();if(u.role!=="admin"){location.href="/";return null}$("adminName").value=u.name||"";$("adminEmail").value=u.email||"";$('welcomeName').textContent=`مرحبًا ${u.name||"بمدير الأكاديمية"}`;return u}
+function fillSelect(id,placeholder,items,label){$(id).innerHTML=`<option value="">${placeholder}</option>`+items.map(x=>`<option value="${x.id}">${esc(label(x))}</option>`).join("")}
+function renderStats(summary){const items=[['levels','المستويات'],['subjects','المواد'],['scholars','العلماء'],['books','الكتب'],['tests','الاختبارات'],['students','الطلاب']];$("stats").innerHTML=items.map(([k,l])=>`<div class="admin-stat"><div class="num">${summary[k]||0}</div><div class="label">${l}</div></div>`).join("")}
+function renderLevels(){ $('levelsList').innerHTML=state.levels.length?state.levels.map(x=>`<div class="admin-list-item"><div><div class="title">${esc(x.name)}</div><div class="sub">ترتيب ${esc(x.sort_order)} — ${esc(x.description||"بدون وصف")}</div></div><div class="actions"><button class="btn small ghost" onclick="editLevel(${x.id})">تعديل</button><button class="btn small danger" onclick="deleteEntity('المستوى','/api/levels/${x.id}')">حذف</button></div></div>`).join(""):adminEmpty('لا توجد مستويات بعد') }
+function renderSubjects(){ $('subjectsList').innerHTML=state.subjects.length?state.subjects.map(x=>`<div class="admin-list-item"><div><div class="title">${esc(x.name)}</div><div class="sub">${esc(x.description||"بدون وصف")}</div></div><div class="actions"><button class="btn small ghost" onclick="editSubject(${x.id})">تعديل</button><button class="btn small danger" onclick="deleteEntity('المادة','/api/subjects/${x.id}')">حذف</button></div></div>`).join(""):adminEmpty('لا توجد مواد بعد') }
+function renderScholars(){ $('scholarsList').innerHTML=state.scholars.length?state.scholars.map(x=>`<div class="admin-list-item"><div style="display:flex;align-items:center;gap:12px">${x.image_url?`<img class="admin-avatar" src="${esc(x.image_url)}" alt="">`:`<div class="admin-avatar">${esc((x.name||'ع').trim().slice(0,1))}</div>`}<div><div class="title">${esc(x.name)}</div><div class="sub">${esc(x.biography||"بدون نبذة")}</div></div></div><div class="actions"><button class="btn small ghost" onclick="editScholar(${x.id})">تعديل</button><button class="btn small danger" onclick="deleteEntity('العالم','/api/scholars/${x.id}')">حذف</button></div></div>`).join(""):adminEmpty('لا يوجد علماء بعد') }
+function renderBooks(){ $('booksList').innerHTML=state.books.length?state.books.map(b=>`<div class="admin-list-item admin-book"><div class="book-info"><strong>${esc(b.title)}</strong><p>${esc(b.scholar_name||b.author||'مؤلف غير محدد')} · ${esc(b.subject_name||'بدون مادة')} · ${esc(b.level_name||'بدون مستوى')} ${b.page_count?`· ${esc(b.page_count)} صفحة`:''}</p></div><div class="actions"><a class="btn small ghost" href="${esc(b.pdf_path)}" target="_blank">فتح PDF</a><button class="btn small ghost" onclick="editBook(${b.id})">تعديل</button><button class="btn small danger" onclick="deleteEntity('الكتاب','/api/books/${b.id}')">حذف</button></div></div>`).join(""):adminEmpty('لا توجد كتب مرفوعة') }
+function renderTests(){ $('testsList').innerHTML=state.tests.length?state.tests.map(t=>`<div class="admin-list-item"><div><div class="title">${esc(t.title)}</div><div class="sub">${esc(t.question_count||0)} سؤال · نجاح ${esc(t.pass_score)}% · ${esc(t.book_title||'بدون كتاب')}</div></div><div class="actions"><button class="btn small gold" onclick="openQuestions(${t.id})">الأسئلة</button><button class="btn small ghost" onclick="editTest(${t.id})">تعديل</button><button class="btn small danger" onclick="deleteEntity('الاختبار','/api/tests/${t.id}')">حذف</button></div></div>`).join(""):adminEmpty('لا توجد اختبارات') }
+function renderStudents(){ $('studentsList').innerHTML=state.students.length?state.students.map(s=>`<div class="admin-list-item"><div><div class="title">${esc(s.name)}</div><div class="sub">${esc(s.email)} · ${esc(s.level_name)}</div></div><div class="actions"><button class="btn small danger" onclick="deleteEntity('الطالب','/api/admin/students/${s.id}')">حذف الحساب</button></div></div>`).join(""):adminEmpty('لا توجد حسابات طلاب') }
+function adminEmpty(t){return `<div class="admin-empty">${esc(t)}</div>`}
+function syncSelects(){fillSelect('bookScholar','اختر العالم',state.scholars,x=>x.name);fillSelect('bookSubject','اختر المادة',state.subjects,x=>x.name);fillSelect('bookLevel','اختر المستوى',state.levels,x=>x.name);fillSelect('testBook','الكتاب المرتبط',state.books,x=>x.title);fillSelect('testLevel','المستوى المرتبط',state.levels,x=>x.name)}
 async function load(){
- const [levels,subjects,scholars,books,tests,summary]=await Promise.all([api("/api/levels"),api("/api/subjects"),api("/api/scholars"),api("/api/books"),api("/api/tests"),api("/api/admin/summary")]);
- const fill=(id,placeholder,data,lab)=>document.getElementById(id).innerHTML=`<option value="">${placeholder}</option>`+data.map(x=>`<option value="${x.id}">${esc(lab(x))}</option>`).join("");
- fill("levelSelect","المستوى",levels,x=>x.name);fill("subjectSelect","المادة",subjects,x=>x.name);fill("scholarSelect","العالم",scholars,x=>x.name);fill("testBookSelect","الكتاب",books,x=>x.title);fill("testLevelSelect","المستوى",levels,x=>x.name);fill("questionTestSelect","الاختبار",tests,x=>x.title);
- document.getElementById("testsList").innerHTML=tests.length?`<div class="admin-table"><div><b>الاختبارات الحالية:</b></div>${tests.map(t=>`<div class="attempt"><strong>${esc(t.title)}</strong><span>${t.question_count} سؤال — نجاح ${t.pass_score}%</span></div>`).join("")}</div>`:"<div class='empty'>لا توجد اختبارات.</div>";
- document.getElementById("booksList").innerHTML=books.length?`<div class="admin-table">${books.map(b=>`<div class="attempt" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><strong>${esc(b.title)}</strong><div class="muted">${esc(b.author||"بدون مؤلف")}</div></div><button class="btn" type="button" onclick="deleteBook(${b.id}, '${esc(b.title).replace(/\'/g,"\\'")}')">حذف الكتاب</button></div>`).join("")}</div>`:"<div class='empty'>لا توجد كتب مرفوعة.</div>";
- document.getElementById("summary").innerHTML=Object.entries({المستويات:summary.levels,الكتب:summary.books,الطلاب:summary.students,الاختبارات:summary.tests,الأسئلة:summary.questions}).map(([k,v])=>`<div class="feature-card"><div class="feature-icon">◈</div><h3>${v}</h3><p>${k}</p></div>`).join("");
+  const [levels,subjects,scholars,books,tests,students,summary]=await Promise.all([api('/api/levels'),api('/api/subjects'),api('/api/scholars'),api('/api/books'),api('/api/tests'),api('/api/admin/students'),api('/api/admin/summary')]);
+  Object.assign(state,{levels,subjects,scholars,books,tests,students});
+  renderStats(summary);renderLevels();renderSubjects();renderScholars();renderBooks();renderTests();renderStudents();syncSelects();
 }
-for(const [form,endpoint,msg] of [["levelForm","/api/levels","levelMsg"],["subjectForm","/api/subjects","subjectMsg"],["scholarForm","/api/scholars","scholarMsg"]]){
- document.getElementById(form).addEventListener("submit",async e=>{e.preventDefault();try{const f=new FormData(e.target);await api(endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(Object.fromEntries(f))});e.target.reset();document.getElementById(msg).textContent="تمت الإضافة.";load()}catch(err){document.getElementById(msg).textContent=err.message}});
-}
-document.getElementById("bookForm").addEventListener("submit",async e=>{e.preventDefault();try{await api("/api/books",{method:"POST",body:new FormData(e.target)});e.target.reset();document.getElementById("bookMsg").textContent="تم رفع الكتاب.";load()}catch(err){document.getElementById("bookMsg").textContent=err.message}});
-async function deleteBook(id,title){
-  if(!confirm(`هل أنت متأكد من حذف الكتاب:\n${title}\n\nسيُحذف سجل الكتاب وملف PDF المرتبط به.`)) return;
-  try{
-    await api(`/api/books/${id}`,{method:"DELETE"});
-    await load();
-  }catch(err){
-    alert(err.message);
-  }
-}
-document.getElementById("testForm").addEventListener("submit",async e=>{e.preventDefault();try{await api("/api/tests",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(Object.fromEntries(new FormData(e.target)))});e.target.reset();document.getElementById("testMsg").textContent="تم إنشاء الاختبار.";load()}catch(err){document.getElementById("testMsg").textContent=err.message}});
-document.getElementById("questionForm").addEventListener("submit",async e=>{e.preventDefault();try{const f=new FormData(e.target),options=Array.from({length:10},(_,i)=>f.get("option_"+i));await api("/api/tests/"+f.get("test_id")+"/questions",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question_text:f.get("question_text"),options,correct_index:Number(f.get("correct_index")),sort_order:Number(f.get("sort_order")||0),explanation:f.get("explanation")||""})});e.target.reset();document.getElementById("questionMsg").textContent="تمت إضافة السؤال.";load()}catch(err){document.getElementById("questionMsg").textContent=err.message}});
-ensureAdmin().then(user=>{ if(user) load().catch(e=>{document.body.insertAdjacentHTML("afterbegin",`<div class="empty">${esc(e.message)}</div>`)}); });;
-</script></body></html>
+async function deleteEntity(label,url){if(!confirm(`هل أنت متأكد من حذف ${label}؟\n\nقد تتأثر العناصر المرتبطة بها.`))return;try{await api(url,{method:'DELETE'});await load()}catch(e){alert(e.message)}}
+function openModal(title,html,save){$('editTitle').textContent=title;$('editForm').innerHTML=html+`<div class="admin-form-actions full"><button class="btn primary" type="submit">حفظ التعديل</button><button class="btn ghost" type="button" onclick="closeModal()">إلغاء</button></div>`;$('editForm').onsubmit=save;$('editBackdrop').classList.add('show');$('editBackdrop').setAttribute('aria-hidden','false')}
+function closeModal(){$('editBackdrop').classList.remove('show');$('editBackdrop').setAttribute('aria-hidden','true')}
+function editLevel(id){const x=state.levels.find(z=>Number(z.id)===Number(id));openModal('تعديل المستوى',`<input name="name" value="${esc(x.name)}" required><input name="sort_order" type="number" value="${esc(x.sort_order)}" required><textarea class="full" name="description">${esc(x.description||'')}</textarea>`,async e=>{e.preventDefault();try{await api('/api/levels/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(e.target)))});closeModal();await load()}catch(err){alert(err.message)}})}
+function editSubject(id){const x=state.subjects.find(z=>Number(z.id)===Number(id));openModal('تعديل المادة',`<input class="full" name="name" value="${esc(x.name)}" required><textarea class="full" name="description">${esc(x.description||'')}</textarea>`,async e=>{e.preventDefault();try{await api('/api/subjects/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(e.target)))});closeModal();await load()}catch(err){alert(err.message)}})}
+function editScholar(id){const x=state.scholars.find(z=>Number(z.id)===Number(id));openModal('تعديل العالم',`<input name="name" value="${esc(x.name)}" required><textarea class="full" name="biography">${esc(x.biography||'')}</textarea><input class="full" name="image" type="file" accept="image/*"><small class="status full">اترك الصورة فارغة للإبقاء على الصورة الحالية.</small>`,async e=>{e.preventDefault();try{await api('/api/scholars/'+id,{method:'PUT',body:new FormData(e.target)});closeModal();await load()}catch(err){alert(err.message)}})}
+function editBook(id){const b=state.books.find(z=>Number(z.id)===Number(id));openModal('تعديل بيانات الكتاب',`<input name="title" value="${esc(b.title)}" required><input name="author" value="${esc(b.author||'')}"><select name="scholar_id">${state.scholars.map(x=>`<option value="${x.id}" ${Number(x.id)===Number(b.scholar_id)?'selected':''}>${esc(x.name)}</option>`).join('')}</select><select name="subject_id">${state.subjects.map(x=>`<option value="${x.id}" ${Number(x.id)===Number(b.subject_id)?'selected':''}>${esc(x.name)}</option>`).join('')}</select><select name="level_id">${state.levels.map(x=>`<option value="${x.id}" ${Number(x.id)===Number(b.level_id)?'selected':''}>${esc(x.name)}</option>`).join('')}</select><input name="page_count" type="number" min="0" value="${esc(b.page_count||0)}"><textarea class="full" name="description">${esc(b.description||'')}</textarea>`,async e=>{e.preventDefault();try{await api('/api/books/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(e.target)))});closeModal();await load()}catch(err){alert(err.message)}})}
+function editTest(id){const t=state.tests.find(z=>Number(z.id)===Number(id));openModal('تعديل الاختبار',`<input name="title" value="${esc(t.title)}" required><input name="pass_score" type="number" min="0" max="100" value="${esc(t.pass_score)}"><select name="book_id">${state.books.map(x=>`<option value="${x.id}" ${Number(x.id)===Number(t.book_id)?'selected':''}>${esc(x.title)}</option>`).join('')}</select><select name="level_id">${state.levels.map(x=>`<option value="${x.id}" ${Number(x.id)===Number(t.level_id)?'selected':''}>${esc(x.name)}</option>`).join('')}</select><textarea class="full" name="description">${esc(t.description||'')}</textarea>`,async e=>{e.preventDefault();try{await api('/api/tests/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(e.target)))});closeModal();await load()}catch(err){alert(err.message)}})}
+async function openQuestions(testId){const t=state.tests.find(x=>Number(x.id)===Number(testId));$('questionsTitle').textContent='أسئلة: '+(t?.title||'الاختبار');$('questionsSub').textContent='يمكنك تعديل السؤال أو حذفه.';const qs=await api('/api/admin/tests/'+testId+'/questions');$('questionsList').innerHTML=qs.length?qs.map((q,i)=>{const payload=encodeURIComponent(JSON.stringify(q));return `<div class="question-row"><div><div class="qtext">${i+1}. ${esc(q.question_text)}</div><small>الإجابة الصحيحة: ${Number(q.correct_index)+1}</small></div><div class="actions"><button class="btn small ghost" onclick="editQuestionEncoded(${testId},'${payload}')">تعديل</button><button class="btn small danger" onclick="deleteQuestion(${testId},${q.id})">حذف</button></div></div>`}).join(''):adminEmpty('لا توجد أسئلة لهذا الاختبار');$('questionsBackdrop').classList.add('show')}
+function closeQuestions(){$('questionsBackdrop').classList.remove('show')}
+function editQuestionEncoded(testId,payload){editQuestion(testId,JSON.parse(decodeURIComponent(payload)))}
+function editQuestion(testId,q){const opts=(q.options||[]);const html=`<textarea class="full" name="question_text" required>${esc(q.question_text)}</textarea>${opts.map((v,i)=>`<input name="option_${i}" value="${esc(v)}" placeholder="الخيار ${i+1}" required>`).join('')}<select name="correct_index">${opts.map((_,i)=>`<option value="${i}" ${Number(q.correct_index)===i?'selected':''}>الإجابة الصحيحة: ${i+1}</option>`).join('')}</select><input name="sort_order" type="number" value="${esc(q.sort_order||0)}"><textarea class="full" name="explanation">${esc(q.explanation||'')}</textarea>`;openModal('تعديل السؤال',html,async e=>{e.preventDefault();const f=new FormData(e.target);const options=Array.from({length:10},(_,i)=>f.get('option_'+i));try{await api(`/api/tests/${testId}/questions/${q.id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({question_text:f.get('question_text'),options,correct_index:Number(f.get('correct_index')),sort_order:Number(f.get('sort_order')||0),explanation:f.get('explanation')||''})});closeModal();openQuestions(testId)}catch(err){alert(err.message)}})}
+async function deleteQuestion(testId,qid){if(!confirm('حذف هذا السؤال؟'))return;try{await api(`/api/tests/${testId}/questions/${qid}`,{method:'DELETE'});await openQuestions(testId);await load()}catch(e){alert(e.message)}}
+
+$('levelForm').addEventListener('submit',async e=>{e.preventDefault();try{await api('/api/levels',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(e.target)))});e.target.reset();$('levelMsg').textContent='تمت الإضافة';await load()}catch(err){$('levelMsg').textContent=err.message}});
+$('subjectForm').addEventListener('submit',async e=>{e.preventDefault();try{await api('/api/subjects',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(e.target)))});e.target.reset();$('subjectMsg').textContent='تمت الإضافة';await load()}catch(err){$('subjectMsg').textContent=err.message}});
+$('scholarForm').addEventListener('submit',async e=>{e.preventDefault();try{await api('/api/scholars',{method:'POST',body:new FormData(e.target)});e.target.reset();$('scholarMsg').textContent='تمت الإضافة';await load()}catch(err){$('scholarMsg').textContent=err.message}});
+$('bookForm').addEventListener('submit',async e=>{e.preventDefault();try{await api('/api/books',{method:'POST',body:new FormData(e.target)});e.target.reset();$('bookMsg').textContent='تم رفع الكتاب';await load()}catch(err){$('bookMsg').textContent=err.message}});
+$('testForm').addEventListener('submit',async e=>{e.preventDefault();try{await api('/api/tests',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(e.target)))});e.target.reset();$('testMsg').textContent='تم إنشاء الاختبار';await load()}catch(err){$('testMsg').textContent=err.message}});
+$('accountForm').addEventListener('submit',async e=>{e.preventDefault();try{const r=await api('/api/admin/account',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(e.target)))});$('accountMsg').textContent='تم حفظ بيانات الحساب';$('adminName').value=r.user.name||'';$('adminEmail').value=r.user.email||'';e.target.querySelector('[name="current_password"]').value='';e.target.querySelector('[name="new_password"]').value='';}catch(err){$('accountMsg').textContent=err.message}});
+$('logoutLink').addEventListener('click',async e=>{e.preventDefault();try{await fetch('/api/auth/logout',{method:'POST'});}finally{location.href='/login.html'}});
+ensureAdmin().then(u=>u&&load().catch(e=>alert(e.message)));
+</script>
+</body>
+</html>
