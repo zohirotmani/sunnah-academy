@@ -9,25 +9,152 @@ function scholarAvatar(s, size=""){
 function bookCard(b){return `<a class="book-card" href="/book.html?id=${b.id}" onclick="return openBookInline(event, ${Number(b.id)})"><div class="book-cover"><span>${esc(b.title)}</span></div><div class="book-body"><h3>${esc(b.title)}</h3><p>${esc(b.scholar_name||b.author||"مؤلف غير محدد")}</p><div class="book-meta">${b.level_name?`<span class="badge">${esc(b.level_name)}</span>`:""}${b.subject_name?`<span class="badge">${esc(b.subject_name)}</span>`:""}</div></div></a>`}
 function levelCard(x){return `<a class="level-card" href="/level.html?id=${x.id}"><div class="level-number">المستوى ${esc(x.sort_order||"")}</div><h3>${esc(x.name)}</h3><p>${esc(x.description||"مسار علمي متدرج")}</p></a>`}
 function scholarCard(s){return `<a class="scholar-card" href="/scholar.html?id=${s.id}"><div class="scholar-card-head">${scholarAvatar(s)}<h3>${esc(s.name)}</h3><p>${esc(s.biography||"عرض كتب ومؤلفات العالم في الأكاديمية")}</p></div></a>`}
-async function openBookInline(event,id){
+function openBookInline(event,id){
   const reader=document.getElementById("inlineBookReader");
   const mobile=window.matchMedia("(max-width:680px)").matches;
-  if(!reader||!mobile)return true;
+
+  if(!reader || !mobile){
+    return true;
+  }
+
   event.preventDefault();
+
+  openBookInlineContent(id);
+
+  return false;
+}
+
+async function openBookInlineContent(id){
+  const reader=document.getElementById("inlineBookReader");
+
+  if(!reader) return;
+
   reader.hidden=false;
-  reader.innerHTML=`<div class="inline-book-head"><div><span class="eyebrow">قراءة الكتاب</span><h3>جاري تحميل الكتاب...</h3></div><button class="btn small ghost" type="button" onclick="closeInlineBook()">إغلاق</button></div><div class="inline-book-loading">جاري التحميل...</div>`;
-  reader.scrollIntoView({behavior:"smooth",block:"start"});
+
+  reader.innerHTML=`
+    <div class="inline-book-head">
+      <div>
+        <span class="eyebrow">قراءة الكتاب</span>
+        <h3>جاري تحميل الكتاب...</h3>
+      </div>
+      <button class="btn small ghost" type="button" onclick="closeInlineBook()">إغلاق</button>
+    </div>
+    <div class="inline-book-loading">جاري التحميل...</div>
+  `;
+
+  reader.scrollIntoView({
+    behavior:"smooth",
+    block:"start"
+  });
+
   try{
     const books=await getJSON("/api/books");
     const b=books.find(x=>String(x.id)===String(id));
-    if(!b){reader.innerHTML=`<div class="inline-book-head"><div><span class="eyebrow">قراءة الكتاب</span><h3>الكتاب غير موجود</h3></div><button class="btn small ghost" type="button" onclick="closeInlineBook()">إغلاق</button></div>`;return false;}
-    reader.innerHTML=`<div class="inline-book-head"><div><span class="eyebrow">قراءة الكتاب</span><h3>${esc(b.title)}</h3><p>${esc(b.scholar_name||b.author||"")}</p></div><button class="btn small ghost" type="button" onclick="closeInlineBook()">إغلاق</button></div><div class="reader-actions inline-reader-actions"><button id="inlineSaveProgress" class="btn primary" type="button">حفظ تقدمي</button><input id="inlinePageNumber" class="page-input" type="number" min="1" placeholder="رقم الصفحة"></div><div class="pdf-frame inline-pdf-frame"><iframe src="${esc(b.pdf_path)}" title="${esc(b.title)}"></iframe></div>`;
+
+    if(!b){
+      reader.innerHTML=`
+        <div class="inline-book-head">
+          <div>
+            <span class="eyebrow">قراءة الكتاب</span>
+            <h3>الكتاب غير موجود</h3>
+          </div>
+          <button class="btn small ghost" type="button" onclick="closeInlineBook()">إغلاق</button>
+        </div>
+      `;
+      return;
+    }
+
+    reader.innerHTML=`
+      <div class="inline-book-head">
+        <div>
+          <span class="eyebrow">قراءة الكتاب</span>
+          <h3>${esc(b.title)}</h3>
+          <p>${esc(b.scholar_name||b.author||"")}</p>
+        </div>
+
+        <button
+          class="btn small ghost"
+          type="button"
+          onclick="closeInlineBook()">
+          إغلاق
+        </button>
+      </div>
+
+      <div class="reader-actions inline-reader-actions">
+        <button
+          id="inlineSaveProgress"
+          class="btn primary"
+          type="button">
+          حفظ تقدمي
+        </button>
+
+        <input
+          id="inlinePageNumber"
+          class="page-input"
+          type="number"
+          min="1"
+          placeholder="رقم الصفحة">
+      </div>
+
+      <div class="pdf-frame inline-pdf-frame">
+        <iframe
+          src="${esc(b.pdf_path)}"
+          title="${esc(b.title)}">
+        </iframe>
+      </div>
+    `;
+
     const pg=document.getElementById("inlinePageNumber");
     const sp=document.getElementById("inlineSaveProgress");
-    if(sp){sp.addEventListener("click",async()=>{const page=Math.max(1,Number(pg.value)||1);const r=await fetch("/api/student/progress",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({book_id:b.id,last_page:page})});if(r.status===401){location.href="/login.html";return}sp.textContent=r.ok?"تم حفظ التقدم":"تعذر الحفظ"})}
-    reader.scrollIntoView({behavior:"smooth",block:"start"});
-  }catch{reader.innerHTML=`<div class="inline-book-head"><div><span class="eyebrow">قراءة الكتاب</span><h3>تعذر تحميل الكتاب</h3></div><button class="btn small ghost" type="button" onclick="closeInlineBook()">إغلاق</button></div>`}
-  return false;
+
+    if(sp){
+      sp.addEventListener("click",async()=>{
+        const page=Math.max(1,Number(pg.value)||1);
+
+        const r=await fetch("/api/student/progress",{
+          method:"POST",
+          headers:{
+            "Content-Type":"application/json"
+          },
+          body:JSON.stringify({
+            book_id:b.id,
+            last_page:page
+          })
+        });
+
+        if(r.status===401){
+          location.href="/login.html";
+          return;
+        }
+
+        sp.textContent=r.ok
+          ? "تم حفظ التقدم"
+          : "تعذر الحفظ";
+      });
+    }
+
+    reader.scrollIntoView({
+      behavior:"smooth",
+      block:"start"
+    });
+
+  }catch{
+    reader.innerHTML=`
+      <div class="inline-book-head">
+        <div>
+          <span class="eyebrow">قراءة الكتاب</span>
+          <h3>تعذر تحميل الكتاب</h3>
+        </div>
+
+        <button
+          class="btn small ghost"
+          type="button"
+          onclick="closeInlineBook()">
+          إغلاق
+        </button>
+      </div>
+    `;
+  }
 }
 function closeInlineBook(){const reader=document.getElementById("inlineBookReader");if(!reader)return;reader.hidden=true;reader.innerHTML=""}
 async function loadHome(){const g=document.getElementById("levelsGrid"),b=document.getElementById("booksGrid");if(!g&&!b)return;try{const [l,books]=await Promise.all([getJSON("/api/levels"),getJSON("/api/books")]);if(g)g.innerHTML=l.length?l.slice(0,4).map(levelCard).join(""):`<div class="empty">لم تُضف مستويات بعد.</div>`;if(b)b.innerHTML=books.length?books.slice(0,6).map(bookCard).join(""):`<div class="empty">لم تُضف كتب بعد.</div>`}catch(e){if(g)g.innerHTML=`<div class="empty">تعذر تحميل المستويات.</div>`;if(b)b.innerHTML=`<div class="empty">تعذر تحميل الكتب.</div>`}}
