@@ -211,9 +211,31 @@ function renderStudents(){ $('studentsList').innerHTML=state.students.length?sta
 function adminEmpty(t){return `<div class="admin-empty">${esc(t)}</div>`}
 function syncSelects(){fillSelect('bookScholar','اختر العالم',state.scholars,x=>x.name);fillSelect('bookSubject','اختر المادة',state.subjects,x=>x.name);fillSelect('bookLevel','اختر المستوى',state.levels,x=>x.name);fillSelect('testBook','الكتاب المرتبط',state.books,x=>x.title);fillSelect('testLevel','المستوى المرتبط',state.levels,x=>x.name)}
 async function load(){
-  const [levels,subjects,scholars,books,tests,students,summary]=await Promise.all([api('/api/levels'),api('/api/subjects'),api('/api/scholars'),api('/api/books'),api('/api/tests'),api('/api/admin/students'),api('/api/admin/summary')]);
+  const [levels,subjects,scholars,books,tests,summary]=await Promise.all([
+    api('/api/levels'),
+    api('/api/subjects'),
+    api('/api/scholars'),
+    api('/api/books'),
+    api('/api/tests'),
+    api('/api/admin/summary')
+  ]);
+
+  let students=[];
+  try{
+    students=await api('/api/admin/students');
+  }catch(e){
+    console.warn('تعذر تحميل الطلاب:',e.message);
+  }
+
   Object.assign(state,{levels,subjects,scholars,books,tests,students});
-  renderStats(summary);renderLevels();renderSubjects();renderScholars();renderBooks();renderTests();renderStudents();syncSelects();
+  renderStats(summary);
+  renderLevels();
+  renderSubjects();
+  renderScholars();
+  renderBooks();
+  renderTests();
+  renderStudents();
+  syncSelects();
 }
 async function deleteEntity(label,url){if(!confirm(`هل أنت متأكد من حذف ${label}؟\n\nقد تتأثر العناصر المرتبطة بها.`))return;try{await api(url,{method:'DELETE'});await load()}catch(e){alert(e.message)}}
 function openModal(title,html,save){$('editTitle').textContent=title;$('editForm').innerHTML=html+`<div class="admin-form-actions full"><button class="btn primary" type="submit">حفظ التعديل</button><button class="btn ghost" type="button" onclick="closeModal()">إلغاء</button></div>`;$('editForm').onsubmit=save;$('editBackdrop').classList.add('show');$('editBackdrop').setAttribute('aria-hidden','false')}
