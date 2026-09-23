@@ -142,20 +142,39 @@ function verifyPassword(password, stored) {
 }
 
 
-// Local development admin account.
-// Change these values before any public deployment.
-const DEFAULT_ADMIN_EMAIL = "admin@academy.local";
-const DEFAULT_ADMIN_PASSWORD = "Admin@12345";
+// Admin bootstrap
+// Local defaults keep development simple. On Render/production, set
+// ADMIN_EMAIL and ADMIN_PASSWORD in the service Environment variables.
+const ADMIN_EMAIL = String(process.env.ADMIN_EMAIL || "admin@academy.local").trim().toLowerCase();
+const ADMIN_PASSWORD = String(process.env.ADMIN_PASSWORD || "Admin@12345");
+const HAS_ADMIN_PASSWORD_ENV = Boolean(process.env.ADMIN_PASSWORD);
 
-if (!db.prepare("SELECT id FROM users WHERE role = 'admin' LIMIT 1").get()) {
+const existingAdmin = db.prepare("SELECT * FROM users WHERE role = 'admin' ORDER BY id ASC LIMIT 1").get();
+
+if (!existingAdmin) {
   db.prepare(`
     INSERT INTO users(name, email, password_hash, role)
     VALUES (?, ?, ?, 'admin')
-  `).run("مدير الأكاديمية", DEFAULT_ADMIN_EMAIL, hashPassword(DEFAULT_ADMIN_PASSWORD));
+  `).run("مدير الأكاديمية", ADMIN_EMAIL, hashPassword(ADMIN_PASSWORD));
 
-  console.log("Local admin created:");
-  console.log(`Email: ${DEFAULT_ADMIN_EMAIL}`);
-  console.log(`Password: ${DEFAULT_ADMIN_PASSWORD}`);
+  console.log("Admin account created:");
+  console.log(`Email: ${ADMIN_EMAIL}`);
+  if (HAS_ADMIN_PASSWORD_ENV) console.log("Password: taken from ADMIN_PASSWORD environment variable");
+  else console.log("Password: local development default");
+} else if (HAS_ADMIN_PASSWORD_ENV) {
+  // Allows an administrator who forgot the password to reset it from Render's
+  // Environment page, without needing Shell/SSH access.
+  const duplicate = db.prepare("SELECT id FROM users WHERE email = ? AND id != ? LIMIT 1").get(ADMIN_EMAIL, existingAdmin.id);
+  if (!duplicate) {
+    db.prepare(`
+      UPDATE users
+      SET email = ?, password_hash = ?
+      WHERE id = ? AND role = 'admin'
+    `).run(ADMIN_EMAIL, hashPassword(ADMIN_PASSWORD), existingAdmin.id);
+    console.log("Admin account synchronized from environment variables.");
+  } else {
+    console.warn("ADMIN_EMAIL is already used by another account; admin email was not changed.");
+  }
 }
 
 function setCookie(res, token) {
