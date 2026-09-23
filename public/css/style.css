@@ -169,3 +169,12 @@ body{background-image:radial-gradient(circle at 12% 10%,rgba(166,122,63,.055),tr
 @media(max-width:1100px){.admin-layout{grid-template-columns:1fr}.admin-sidebar{position:static}.sidebar-nav{display:flex;flex-wrap:wrap;gap:4px}.side-divider{width:100%;margin:3px 0}.admin-stats{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:780px){.admin-hero-panel{flex-direction:column}.signature-card{min-width:0;width:100%}.admin-stats{grid-template-columns:repeat(2,1fr)}.admin-two,.admin-form-grid{grid-template-columns:1fr}.admin-form-grid .full,.form-grid .full{grid-column:auto}}
 @media(max-width:520px){.admin-page-shell{padding-top:18px}.admin-topline{font-size:10px}.admin-header .nav-wrap{min-height:68px}.admin-hero-panel{padding:21px}.admin-hero-panel h1{font-size:35px}.admin-section-head{align-items:flex-start}.admin-section-head,.list-card-head{flex-direction:column;align-items:flex-start}.admin-stats{grid-template-columns:1fr 1fr}.admin-list-item{display:grid;grid-template-columns:1fr}.admin-list-item .actions{justify-content:flex-start}}
+.brand-mark{
+  width:145px;
+  height:48px;
+  display:block;
+  background:url("/images/sunnah-logo.png") center/contain no-repeat;
+  font-size:0;
+  line-height:0;
+  flex:0 0 auto;
+}
