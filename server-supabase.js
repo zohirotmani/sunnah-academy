@@ -690,7 +690,34 @@ app.get("/api/admin/tests/:id/questions", requireAdmin, async (req, res, next) =
     })));
   } catch (e) { next(e); }
 });
+app.get("/api/admin/tests/:id/questions", requireAdmin, async (req, res, next) => {
+  try {
+    const { data, error } = await supabase
+      .from("questions")
+      .select("id,question_text,options_json,correct_indices_json,correct_index,explanation,sort_order")
+      .eq("test_id", req.params.id)
+      .order("sort_order", { ascending: true })
+      .order("id", { ascending: true });
 
+    if (error) throw error;
+
+    const questions = (data || []).map(q => ({
+      id: q.id,
+      question_text: q.question_text,
+      options: JSON.parse(q.options_json || "[]"),
+      correct_indices: normalizeCorrectIndices(
+        q.correct_indices_json,
+        q.correct_index
+      ),
+      explanation: q.explanation || "",
+      sort_order: q.sort_order || 0
+    }));
+
+    res.json(questions);
+  } catch (e) {
+    next(e);
+  }
+});
 app.post("/api/tests/:id/questions", requireAdmin, async (req, res, next) => {
   try {
     const { question_text, options, correct_indices, correct_index, explanation = "", sort_order = 0 } = req.body;
